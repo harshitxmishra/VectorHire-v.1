@@ -4,6 +4,7 @@ import { MainLayout } from '@/components/layout/main-layout';
 import {
   Badge,
   Button,
+  Checkbox,
   Dropdown,
   Option,
   MessageBar,
@@ -12,13 +13,21 @@ import {
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
-import { Sparkle16Regular, DatabaseRegular, ArrowSyncRegular } from '@fluentui/react-icons';
+import { Sparkle16Regular, DatabaseRegular, ArrowSyncRegular, ArrowTrendingRegular, MailRegular } from '@fluentui/react-icons';
 import { ChartContainer } from '@/components/ui/chart-container';
-import { BadgeStatus } from '@/components/ui/badge-status';
 import CandidateInsightsDrawer from '@/components/ai/CandidateInsightsDrawer';
 import { DatasetManagerDialog } from '@/components/candidates/DatasetManagerDialog';
+import { ShortlistDialog } from '@/components/candidates/ShortlistDialog';
+import { useAppToast } from '@/lib/hooks/use-app-toast';
 import { useCallback, useEffect, useState } from 'react';
-import { Candidate, AIEvaluationResult, JobDescription, JobMatchResult, GitHubIntelligence } from '@/lib/types';
+import {
+  Candidate,
+  AIEvaluationResult,
+  JobDescription,
+  JobMatchResult,
+  GitHubIntelligence,
+  PIPELINE_STAGES,
+} from '@/lib/types';
 
 const useStyles = makeStyles({
   container: {
@@ -118,12 +127,27 @@ export default function CandidatesPage() {
   const [resumeParsing, setResumeParsing] = useState<Record<number, boolean>>({});
   const [githubIntel, setGithubIntel] = useState<Record<number, GitHubIntelligence>>({});
   const [githubLoading, setGithubLoading] = useState<Record<number, boolean>>({});
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [shortlistOpen, setShortlistOpen] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const notify = useAppToast();
 
   const loadCandidates = useCallback(async () => {
     try {
       const res = await fetch('/api/candidates');
       const data: Candidate[] = await res.json();
       setTopCandidates(data);
+
+      const seededEvaluations: Record<number, AIEvaluationResult> = {};
+      const seededStatus: Record<number, EvaluationStatus> = {};
+      data.forEach((candidate) => {
+        if (candidate.ai_evaluation) {
+          seededEvaluations[candidate.id] = candidate.ai_evaluation;
+          seededStatus[candidate.id] = 'evaluated';
+        }
+      });
+      setEvaluations((prev) => ({ ...seededEvaluations, ...prev }));
+      setEvaluationStatus((prev) => ({ ...seededStatus, ...prev }));
     } catch (err) {
       console.error(err);
     } finally {
@@ -169,7 +193,7 @@ export default function CandidatesPage() {
       .catch((err) => console.error(err));
   }, [selectedJobId]);
 
-  const runEvaluation = useCallback(async (candidate: Candidate) => {
+  const runEvaluation = useCallback(async (candidate: Candidate, force = false) => {
     setEvaluationStatus((prev) => ({ ...prev, [candidate.id]: 'evaluating' }));
     setEvaluationError(null);
 
@@ -185,6 +209,7 @@ export default function CandidatesPage() {
           github: candidate.github ?? '',
           status: candidate.status,
           ai_score: candidate.ai_score,
+          force,
         }),
       });
 
@@ -257,11 +282,15 @@ export default function CandidatesPage() {
       if (!response.ok) throw new Error(result.error ?? 'GitHub analysis failed.');
       setGithubIntel((prev) => ({ ...prev, [candidate.id]: result }));
     } catch (err) {
-      console.error(err);
+      const message = err instanceof Error ? err.message : 'GitHub analysis failed.';
+      notify(message, 'error');
+      if (message === 'Candidate not found.') {
+        await loadCandidates();
+      }
     } finally {
       setGithubLoading((prev) => ({ ...prev, [candidate.id]: false }));
     }
-  }, []);
+  }, [notify, loadCandidates]);
 
   const handleRetryResume = async (candidate: Candidate) => {
     setResumeParsing((prev) => ({ ...prev, [candidate.id]: true }));
@@ -294,6 +323,68 @@ export default function CandidatesPage() {
     }
   };
 
+  const handleStatusChange = async (candidate: Candidate, newStatus: string) => {
+    try {
+      const res = await fetch(`/api/candidates/${candidate.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed to update status.');
+      setTopCandidates((prev) => prev.map((c) => (c.id === candidate.id ? { ...c, status: newStatus } : c)));
+      notify(`${candidate.full_name} moved to ${newStatus}`, 'success');
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to update status.', 'error');
+    }
+  };
+
+  const toggleSelected = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkEmail = async (type: 'assessment' | 'offer') => {
+    if (selectedIds.size === 0) {
+      notify('Select at least one candidate first.', 'error');
+      return;
+    }
+    setSendingEmail(true);
+    try {
+      const res = await fetch('/api/emails/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ candidateIds: Array.from(selectedIds), type }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? 'Failed to send emails.');
+      notify(`Sent ${body.sent}, failed ${body.failed}.`, body.failed > 0 ? 'error' : 'success');
+      await loadCandidates();
+      setSelectedIds(new Set());
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to send emails.', 'error');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const handleConfirmShortlist = async (candidateIds: number[]) => {
+    await Promise.all(
+      candidateIds.map((id) =>
+        fetch(`/api/candidates/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'Shortlisted' }),
+        })
+      )
+    );
+    notify(`Shortlisted ${candidateIds.length} candidates.`, 'success');
+    setShortlistOpen(false);
+    await loadCandidates();
+  };
+
   const selectedJob = jobDescriptions.find((jd) => jd.id === selectedJobId) ?? null;
 
   return (
@@ -317,6 +408,25 @@ export default function CandidatesPage() {
                 </Option>
               ))}
             </Dropdown>
+            <Button appearance="secondary" icon={<ArrowTrendingRegular />} onClick={() => setShortlistOpen(true)}>
+              Generate Shortlist
+            </Button>
+            <Button
+              appearance="secondary"
+              icon={<MailRegular />}
+              disabled={sendingEmail}
+              onClick={() => handleBulkEmail('assessment')}
+            >
+              Send Assessment ({selectedIds.size})
+            </Button>
+            <Button
+              appearance="secondary"
+              icon={<MailRegular />}
+              disabled={sendingEmail}
+              onClick={() => handleBulkEmail('offer')}
+            >
+              Send Offer ({selectedIds.size})
+            </Button>
             <Button
               appearance="primary"
               icon={<DatabaseRegular />}
@@ -341,6 +451,10 @@ export default function CandidatesPage() {
             >
               {topCandidates.map((candidate) => (
                 <div key={candidate.id} className={styles.candidateItem}>
+                  <Checkbox
+                    checked={selectedIds.has(candidate.id)}
+                    onChange={() => toggleSelected(candidate.id)}
+                  />
                   <div className={styles.candidateContent}>
                     <div className={styles.candidateName}>{candidate.full_name}</div>
                     <div className={styles.candidateDesc}>
@@ -437,7 +551,19 @@ export default function CandidatesPage() {
                       </Badge>
                     ) : null}
 
-                    <BadgeStatus status={candidate.status} />
+                    <Dropdown
+                      style={{ minWidth: '170px' }}
+                      value={candidate.status}
+                      onOptionSelect={(_, data) =>
+                        data.optionValue && handleStatusChange(candidate, data.optionValue)
+                      }
+                    >
+                      {PIPELINE_STAGES.map((stage) => (
+                        <Option key={stage} value={stage}>
+                          {stage}
+                        </Option>
+                      ))}
+                    </Dropdown>
 
                     <Button
                       appearance="secondary"
@@ -459,11 +585,12 @@ export default function CandidatesPage() {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         loading={!!activeCandidate && evaluationStatus[activeCandidate.id] === 'evaluating'}
+        candidateId={activeCandidate?.id}
         candidateName={activeCandidate?.full_name ?? ''}
         errorMessage={
           activeCandidate && evaluationStatus[activeCandidate.id] === 'error' ? evaluationError : null
         }
-        onRetry={activeCandidate ? () => runEvaluation(activeCandidate) : undefined}
+        onRetry={activeCandidate ? () => runEvaluation(activeCandidate, true) : undefined}
         data={activeCandidate ? evaluations[activeCandidate.id] : undefined}
         jobMatchLoading={!!activeCandidate && matchStatus[activeCandidate.id] === 'matching'}
         jobMatch={
@@ -486,6 +613,14 @@ export default function CandidatesPage() {
         open={datasetManagerOpen}
         onClose={() => setDatasetManagerOpen(false)}
         onImported={loadCandidates}
+      />
+
+      <ShortlistDialog
+        open={shortlistOpen}
+        onClose={() => setShortlistOpen(false)}
+        candidates={topCandidates}
+        matches={matches}
+        onConfirm={handleConfirmShortlist}
       />
     </MainLayout>
   );

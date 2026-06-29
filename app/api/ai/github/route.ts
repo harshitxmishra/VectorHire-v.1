@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getOrAnalyzeGitHub } from '@/lib/services/github-service';
+import { logTimelineEvent } from '@/lib/services/timeline-service';
+import { friendlyAIErrorMessage } from '@/lib/ai/error';
 
 export async function POST(req: Request) {
   try {
@@ -11,9 +13,10 @@ export async function POST(req: Request) {
     }
 
     const analysis = await getOrAnalyzeGitHub(candidateId);
+    await logTimelineEvent(candidateId, 'github_analyzed', `Score: ${analysis.score}`);
     return NextResponse.json(analysis);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'GitHub analysis failed.';
-    return NextResponse.json({ error: message }, { status: 502 });
+    console.error('GitHub analysis failed:', error);
+    return NextResponse.json({ error: friendlyAIErrorMessage(error) }, { status: 502 });
   }
 }

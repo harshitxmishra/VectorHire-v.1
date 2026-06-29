@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { parseCSV, mapCandidateRow } from "@/lib/utils/csv-parser";
 import { insertCandidates } from "@/lib/services/candidate-service";
 import { recordDatasetUpload, deleteAllCandidates } from "@/lib/services/dataset-service";
+import { logTimelineEvent } from "@/lib/services/timeline-service";
 
 export async function POST(req: Request) {
   try {
@@ -42,6 +43,10 @@ export async function POST(req: Request) {
 
     const inserted = await insertCandidates(
       candidates.map((candidate) => ({ ...candidate, dataset_id: dataset.id }))
+    );
+
+    await Promise.all(
+      inserted.map((c: { id: number }) => logTimelineEvent(c.id, 'applied', 'Imported into dataset'))
     );
 
     return NextResponse.json({

@@ -1,10 +1,6 @@
-import { GoogleGenAI } from '@google/genai';
 import { toDirectDownloadUrl } from '@/lib/utils/google-drive';
 import { supabase } from '@/lib/supabase/client';
-
-const gemini = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-});
+import { aiGenerateText } from '@/lib/ai/client';
 
 export interface ResumeFetchResult {
   base64: string;
@@ -36,43 +32,19 @@ export async function fetchResumeFile(resumeUrl: string): Promise<ResumeFetchRes
   };
 }
 
-export async function extractResumeText(resumeUrl: string): Promise<string> {
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY is not configured.');
-  }
-
-  const { base64, mimeType } = await fetchResumeFile(resumeUrl);
-
-  const response = await gemini.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: [
-      {
-        role: 'user',
-        parts: [
-          {
-            text:
-              'Extract all readable text content from this resume document. ' +
-              'Return ONLY the extracted text, preserving the original structure with line breaks. ' +
-              'Do not summarize, omit, or add any commentary.',
-          },
-          {
-            inlineData: {
-              mimeType,
-              data: base64,
-            },
-          },
-        ],
-      },
-    ],
+export async function extractTextFromBase64(base64: string, mimeType: string): Promise<string> {
+  return aiGenerateText({
+    prompt:
+      'Extract all readable text content from this resume document. ' +
+      'Return ONLY the extracted text, preserving the original structure with line breaks. ' +
+      'Do not summarize, omit, or add any commentary.',
+    document: { mimeType, base64 },
   });
+}
 
-  const text = response.text?.trim();
-
-  if (!text) {
-    throw new Error('Gemini returned no extracted text.');
-  }
-
-  return text;
+export async function extractResumeText(resumeUrl: string): Promise<string> {
+  const { base64, mimeType } = await fetchResumeFile(resumeUrl);
+  return extractTextFromBase64(base64, mimeType);
 }
 
 export async function parseResumeForCandidate(candidateId: number, resumeUrl: string) {

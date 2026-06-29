@@ -10,6 +10,12 @@ import {
   Star24Regular,
   Trophy24Regular,
   BuildingBank24Regular,
+  MailRegular,
+  TaskListSquareLtr24Regular,
+  CalendarAgenda24Regular,
+  MoneyRegular,
+  ArrowTrendingRegular,
+  CalendarWeekStart24Regular,
 } from '@fluentui/react-icons';
 
 const useStyles = makeStyles({
@@ -71,6 +77,42 @@ export function KPICards({ data, isLoading }: KPICardsProps) {
       value: data.topCollege,
       icon: <BuildingBank24Regular />,
       tooltip: 'College with the most applicants',
+    },
+    {
+      title: 'Assessments Pending',
+      value: data.assessmentsPending,
+      icon: <MailRegular />,
+      tooltip: 'Assessments sent, awaiting completion',
+    },
+    {
+      title: 'Assessments Completed',
+      value: data.assessmentsCompleted,
+      icon: <TaskListSquareLtr24Regular />,
+      tooltip: 'Candidates with completed assessments',
+    },
+    {
+      title: 'Upcoming Interviews',
+      value: data.upcomingInterviews,
+      icon: <CalendarAgenda24Regular />,
+      tooltip: 'Interviews scheduled in the future',
+    },
+    {
+      title: 'Interviews This Week',
+      value: data.interviewsThisWeek,
+      icon: <CalendarWeekStart24Regular />,
+      tooltip: 'Interviews scheduled in the next 7 days',
+    },
+    {
+      title: 'Offers',
+      value: data.offers,
+      icon: <MoneyRegular />,
+      tooltip: 'Candidates with an offer extended',
+    },
+    {
+      title: 'Hire Rate',
+      value: `${data.hireRate}%`,
+      icon: <ArrowTrendingRegular />,
+      tooltip: 'Percentage of candidates hired',
     },
   ];
 

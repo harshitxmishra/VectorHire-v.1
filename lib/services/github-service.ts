@@ -1,9 +1,20 @@
-import { GoogleGenAI, Type } from '@google/genai';
 import { supabase } from '@/lib/supabase/client';
 import { GitHubIntelligence } from '@/lib/types';
+import { aiGenerateJSON } from '@/lib/ai/client';
+import { AISchema } from '@/lib/ai/types';
 
-const gemini = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+const githubAnalysisSchema: AISchema = {
+  type: 'object',
+  properties: {
+    score: { type: 'number', minimum: 0, maximum: 100 },
+    summary: { type: 'string' },
+    portfolioVerdict: { type: 'string' },
+    highlights: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['score', 'summary', 'portfolioVerdict', 'highlights'],
+};
 
 function extractUsername(url: string): string | null {
   const match = url.match(/github\.com\/([A-Za-z0-9-]+)/i);
@@ -107,35 +118,14 @@ Detected signals: backend=${flags.backend}, frontend=${flags.frontend}, AI/ML=${
 Strongest repo by stars: ${strongestRepo?.name ?? 'none'} - ${strongestRepo?.description ?? 'no description'}.
 
 Score engineering maturity 0-100 based on project quality, technology diversity, portfolio completeness, and consistency. Do not overvalue stars/followers.
-Give a short summary (2-3 sentences), a concise portfolioVerdict (e.g. "Strong Full-Stack Portfolio", "Backend-Focused Engineer", "Mostly Academic Projects", "Portfolio Needs Improvement"), and 2-4 short engineering highlights.
-Return ONLY valid JSON.`;
+Give a short summary (2-3 sentences), a concise portfolioVerdict (e.g. "Strong Full-Stack Portfolio", "Backend-Focused Engineer", "Mostly Academic Projects", "Portfolio Needs Improvement"), and 2-4 short engineering highlights.`;
 
-  const response = await gemini.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          score: { type: Type.NUMBER, minimum: 0, maximum: 100 },
-          summary: { type: Type.STRING },
-          portfolioVerdict: { type: Type.STRING },
-          highlights: { type: Type.ARRAY, items: { type: Type.STRING } },
-        },
-        required: ['score', 'summary', 'portfolioVerdict', 'highlights'],
-      },
-    },
-  });
-
-  const text = response.text?.trim();
-  if (!text) throw new Error('Gemini returned no GitHub analysis.');
-  const parsed = JSON.parse(text) as {
+  const parsed = await aiGenerateJSON<{
     score: number;
     summary: string;
     portfolioVerdict: string;
     highlights: string[];
-  };
+  }>({ prompt, schema: githubAnalysisSchema });
 
   return {
     score: parsed.score,
@@ -156,7 +146,11 @@ export async function getOrAnalyzeGitHub(candidateId: number): Promise<GitHubInt
     .eq('id', candidateId)
     .single();
 
-  if (error || !candidate) {
+  if (error) {
+    throw new Error(`Failed to load candidate: ${error.message}`);
+  }
+
+  if (!candidate) {
     throw new Error('Candidate not found.');
   }
 

@@ -17,6 +17,94 @@ import CandidateInsightsDrawer from '@/components/ai/CandidateInsightsDrawer';
 import { useAppData } from '@/lib/hooks/use-app-data';
 import { useCallback, useEffect, useState } from 'react';
 import { Candidate, AIEvaluationResult, JobDescription, JobMatchResult } from '@/lib/types';
+import { Textarea, Tag } from '@fluentui/react-components';
+
+interface ResumeMatchResult {
+  matchPercentage: number;
+  matchedSkills: string[];
+  missingSkills: string[];
+  experienceMatch: string;
+  educationMatch: string;
+  recommendation: string;
+}
+
+function ResumeMatcher() {
+  const [file, setFile] = useState<File | null>(null);
+  const [jobDescription, setJobDescription] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<ResumeMatchResult | null>(null);
+
+  const analyze = async () => {
+    if (!file || !jobDescription.trim()) {
+      setError('Upload a PDF and paste a job description.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('jobDescription', jobDescription);
+      const res = await fetch('/api/ai/resume-match', { method: 'POST', body: formData });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? 'Resume match failed.');
+      setResult(body);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Resume match failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <ChartContainer title="Resume Matcher" subtitle="Upload any PDF resume and match it against a job description on the spot">
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM }}>
+        <input type="file" accept="application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+        <Textarea
+          placeholder="Paste job description here..."
+          value={jobDescription}
+          onChange={(_, data) => setJobDescription(data.value)}
+          rows={4}
+        />
+        <Button appearance="primary" disabled={loading} onClick={analyze} style={{ alignSelf: 'flex-start' }}>
+          {loading ? 'Analyzing...' : 'Analyze Match'}
+        </Button>
+
+        {error ? (
+          <MessageBar intent="error">
+            <MessageBarBody>{error}</MessageBarBody>
+          </MessageBar>
+        ) : null}
+
+        {result ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS }}>
+            <Badge appearance="filled" color="brand" style={{ alignSelf: 'flex-start' }}>
+              {result.matchPercentage}% match
+            </Badge>
+            <div>
+              {result.matchedSkills.map((s) => (
+                <Tag key={s} appearance="filled" color="success" style={{ marginRight: 4 }}>
+                  {s}
+                </Tag>
+              ))}
+              {result.missingSkills.map((s) => (
+                <Tag key={s} appearance="filled" color="danger" style={{ marginRight: 4 }}>
+                  {s}
+                </Tag>
+              ))}
+            </div>
+            <span>Experience: {result.experienceMatch}</span>
+            <span>Education: {result.educationMatch}</span>
+            <span>{result.recommendation}</span>
+          </div>
+        ) : null}
+      </div>
+    </ChartContainer>
+  );
+}
 
 const useStyles = makeStyles({
   container: {
@@ -113,7 +201,7 @@ export default function AIEvaluationPage() {
       .catch((err) => console.error(err));
   }, [selectedJobId]);
 
-  const runEvaluation = useCallback(async (candidate: Candidate) => {
+  const runEvaluation = useCallback(async (candidate: Candidate, force = false) => {
     setEvaluationStatus((prev) => ({ ...prev, [candidate.id]: 'evaluating' }));
     setEvaluationError(null);
 
@@ -122,12 +210,14 @@ export default function AIEvaluationPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          candidate_id: candidate.id,
           full_name: candidate.full_name,
           college: candidate.college,
           cgpa: candidate.cgpa,
           github: candidate.github ?? '',
           status: candidate.status,
           ai_score: candidate.ai_score,
+          force,
         }),
       });
 
@@ -204,6 +294,8 @@ export default function AIEvaluationPage() {
   return (
     <MainLayout>
       <div className={styles.container}>
+        <ResumeMatcher />
+
         <div className={styles.header}>
           <Title2>AI Evaluation Queue</Title2>
           <Dropdown
@@ -290,11 +382,12 @@ export default function AIEvaluationPage() {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         loading={!!activeCandidate && evaluationStatus[activeCandidate.id] === 'evaluating'}
+        candidateId={activeCandidate?.id}
         candidateName={activeCandidate?.full_name ?? ''}
         errorMessage={
           activeCandidate && evaluationStatus[activeCandidate.id] === 'error' ? evaluationError : null
         }
-        onRetry={activeCandidate ? () => runEvaluation(activeCandidate) : undefined}
+        onRetry={activeCandidate ? () => runEvaluation(activeCandidate, true) : undefined}
         data={activeCandidate ? evaluations[activeCandidate.id] : undefined}
         jobMatchLoading={!!activeCandidate && matchStatus[activeCandidate.id] === 'matching'}
         jobMatch={

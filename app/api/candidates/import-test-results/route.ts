@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { parseCSV, mapTestResultRow } from "@/lib/utils/csv-parser";
 import { updateTestResultByEmail } from "@/lib/services/candidate-service";
+import { logTimelineEvent } from "@/lib/services/timeline-service";
 
 export async function POST(req: Request) {
   try {
@@ -17,12 +18,24 @@ export async function POST(req: Request) {
 
     let matched = 0;
     for (const result of results) {
-      const { matched: rowsMatched } = await updateTestResultByEmail(
+      const { matchedIds, eligible, overallScore } = await updateTestResultByEmail(
         result.email,
         result.test_la,
         result.test_code
       );
-      matched += rowsMatched;
+      matched += matchedIds.length;
+      await Promise.all(
+        matchedIds.map(async (id) => {
+          await logTimelineEvent(
+            id,
+            'assessment_completed',
+            `LA: ${result.test_la ?? 'n/a'}, Code: ${result.test_code ?? 'n/a'}, Overall: ${overallScore ?? 'n/a'}`
+          );
+          if (eligible) {
+            await logTimelineEvent(id, 'interview_eligible', `Overall score ${overallScore}% meets threshold`);
+          }
+        })
+      );
     }
 
     return NextResponse.json({

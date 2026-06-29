@@ -1,9 +1,10 @@
 'use client';
 
-import { makeStyles, tokens } from '@fluentui/react-components';
+import { makeStyles, tokens, Toaster } from '@fluentui/react-components';
 import { Sidebar } from './sidebar';
 import { Navbar } from './navbar';
 import { ReactNode } from 'react';
+import { APP_TOASTER_ID } from '@/lib/hooks/use-app-toast';
 
 const useStyles = makeStyles({
   root: {
@@ -44,6 +45,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <div className={styles.root}>
+      <Toaster toasterId={APP_TOASTER_ID} />
       <Sidebar />
       <div className={styles.main}>
         <Navbar />

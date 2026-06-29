@@ -1,6 +1,9 @@
-import { GoogleGenAI, Type } from '@google/genai';
 import { NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase/client';
+import { aiGenerateJSON } from '@/lib/ai/client';
+import { AISchema } from '@/lib/ai/types';
 import { getOrAnalyzeGitHub } from '@/lib/services/github-service';
+import { logTimelineEvent } from '@/lib/services/timeline-service';
 
 type CandidateEvaluationInput = {
   candidate_id?: number;
@@ -26,68 +29,20 @@ const systemPrompt =
 
 Evaluate the candidate objectively.
 
-Score the candidate from 0-100.
+Score the candidate from 0-100.`;
 
-Return ONLY valid JSON.
-
-Do not return markdown.
-
-Do not include explanations outside JSON.`;
-
-const evaluationSchema = {
-  type: Type.OBJECT,
+const evaluationSchema: AISchema = {
+  type: 'object',
   properties: {
-    score: {
-      type: Type.NUMBER,
-      minimum: 0,
-      maximum: 100,
-    },
-    summary: {
-      type: Type.STRING,
-    },
-    strengths: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.STRING,
-      },
-    },
-    weaknesses: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.STRING,
-      },
-    },
-    recommendation: {
-      type: Type.STRING,
-    },
-    interviewQuestions: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.STRING,
-      },
-    },
+    score: { type: 'number', minimum: 0, maximum: 100 },
+    summary: { type: 'string' },
+    strengths: { type: 'array', items: { type: 'string' } },
+    weaknesses: { type: 'array', items: { type: 'string' } },
+    recommendation: { type: 'string' },
+    interviewQuestions: { type: 'array', items: { type: 'string' } },
   },
-  required: [
-    'score',
-    'summary',
-    'strengths',
-    'weaknesses',
-    'recommendation',
-    'interviewQuestions',
-  ],
-  propertyOrdering: [
-    'score',
-    'summary',
-    'strengths',
-    'weaknesses',
-    'recommendation',
-    'interviewQuestions',
-  ],
-} as const;
-
-const gemini = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-});
+  required: ['score', 'summary', 'strengths', 'weaknesses', 'recommendation', 'interviewQuestions'],
+};
 
 function isValidCandidateInput(body: unknown): body is CandidateEvaluationInput {
   if (!body || typeof body !== 'object') {
@@ -108,9 +63,7 @@ function isValidCandidateInput(body: unknown): body is CandidateEvaluationInput 
   );
 }
 
-function isValidEvaluationResult(
-  value: unknown
-): value is CandidateEvaluationResult {
+function isValidEvaluationResult(value: unknown): value is CandidateEvaluationResult {
   if (!value || typeof value !== 'object') {
     return false;
   }
@@ -131,60 +84,28 @@ function isValidEvaluationResult(
   );
 }
 
-function extractGeminiText(response: unknown): string {
-  if (!response || typeof response !== 'object') {
-    throw new Error('Gemini returned an invalid response object.');
-  }
-
-  const responseRecord = response as {
-    text?: string;
-    candidates?: Array<{
-      content?: {
-        parts?: Array<{
-          text?: string;
-        }>;
-      };
-    }>;
-  };
-
-  if (typeof responseRecord.text === 'string' && responseRecord.text.trim()) {
-    return responseRecord.text.trim();
-  }
-
-  const parts = responseRecord.candidates?.[0]?.content?.parts;
-
-  if (!parts?.length) {
-    throw new Error('Gemini returned no text content.');
-  }
-
-  const text = parts
-    .map((part) => (typeof part.text === 'string' ? part.text : ''))
-    .join('')
-    .trim();
-
-  if (!text) {
-    throw new Error('Gemini returned empty text content.');
-  }
-
-  return text;
-}
-
 export async function POST(req: Request) {
   try {
-    if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json(
-        { error: 'GEMINI_API_KEY is not configured.' },
-        { status: 500 }
-      );
-    }
-
     const body = (await req.json()) as unknown;
 
     if (!isValidCandidateInput(body)) {
-      return NextResponse.json(
-        { error: 'Invalid request body.' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
+    }
+
+    const force = (body as Record<string, unknown>).force === true;
+
+    // Cache: never re-run AI for a candidate that already has an evaluation,
+    // unless the recruiter explicitly requests "Re-evaluate".
+    if (body.candidate_id && !force) {
+      const { data: cached } = await supabase
+        .from('candidates')
+        .select('ai_evaluation')
+        .eq('id', body.candidate_id)
+        .single();
+
+      if (cached?.ai_evaluation) {
+        return NextResponse.json(cached.ai_evaluation);
+      }
     }
 
     let githubContext = '';
@@ -202,56 +123,37 @@ Highlights: ${github.highlights.join('; ') || 'none'}`;
       }
     }
 
-    const response = await gemini.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            {
-              text: `${systemPrompt}
-
-Return exactly this JSON structure:
-{
-  "score": number,
-  "summary": string,
-  "strengths": string[],
-  "weaknesses": string[],
-  "recommendation": string,
-  "interviewQuestions": string[]
-}
+    const parsed = await aiGenerateJSON<CandidateEvaluationResult>({
+      prompt: `${systemPrompt}
 
 Candidate:
-${JSON.stringify(body)}${githubContext}`
-            },
-          ],
-        },
-      ],
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: evaluationSchema,
-      },
+${JSON.stringify(body)}${githubContext}`,
+      schema: evaluationSchema,
     });
 
-    const content = extractGeminiText(response);
-    const parsed = JSON.parse(content) as unknown;
-
     if (!isValidEvaluationResult(parsed)) {
-      throw new Error('Gemini returned an invalid evaluation payload.');
+      throw new Error('AI provider returned an invalid evaluation payload.');
+    }
+
+    if (body.candidate_id) {
+      await supabase
+        .from('candidates')
+        .update({ ai_evaluation: parsed, ai_evaluated_at: new Date().toISOString() })
+        .eq('id', body.candidate_id);
+      await logTimelineEvent(body.candidate_id, 'ai_evaluated', `Score: ${parsed.score}`);
     }
 
     return NextResponse.json(parsed);
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Failed to evaluate candidate.';
-
     if (error instanceof SyntaxError) {
-      return NextResponse.json(
-        { error: 'Invalid JSON request body.' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid JSON request body.' }, { status: 400 });
     }
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    // Never expose raw provider/API errors to the recruiter.
+    console.error('AI evaluation failed:', error);
+    return NextResponse.json(
+      { error: 'AI evaluation is temporarily unavailable. Please try again shortly.' },
+      { status: 502 }
+    );
   }
 }

@@ -15,6 +15,25 @@ export async function getJobMatchesForJD(jobDescriptionId: number): Promise<JobM
   return data ?? [];
 }
 
+export async function getBestMatchPerCandidate(): Promise<Record<number, number>> {
+  const { data, error } = await supabase
+    .from('job_match_results')
+    .select('candidate_id, match_percentage');
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const best: Record<number, number> = {};
+  (data ?? []).forEach((row) => {
+    if (!(row.candidate_id in best) || row.match_percentage > best[row.candidate_id]) {
+      best[row.candidate_id] = row.match_percentage;
+    }
+  });
+
+  return best;
+}
+
 export interface UpsertJobMatchInput {
   candidate_id: number;
   job_description_id: number;

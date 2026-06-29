@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import type { Candidate, CollegeGroup, KPIData, ScoreBucket } from '@/lib/types';
+import type { Candidate, CollegeGroup, Interview, KPIData, ScoreBucket } from '@/lib/types';
 
 export interface AppData {
   candidates: Candidate[];
@@ -19,6 +19,12 @@ const EMPTY_DATA: AppData = {
     averageAIScore: 0,
     topCollege: '—',
     highScorers: 0,
+    assessmentsPending: 0,
+    assessmentsCompleted: 0,
+    upcomingInterviews: 0,
+    offers: 0,
+    hireRate: 0,
+    interviewsThisWeek: 0,
   },
   collegeGroups: [],
   scoreBuckets: [],
@@ -28,7 +34,7 @@ function isStatus(candidate: Candidate, status: string) {
   return candidate.status?.toLowerCase() === status;
 }
 
-function computeKPIs(candidates: Candidate[]): KPIData {
+function computeKPIs(candidates: Candidate[], interviews: Interview[]): KPIData {
   const totalCandidates = candidates.length;
   const shortlisted = candidates.filter((c) => isStatus(c, 'shortlisted')).length;
   const pendingReview = candidates.filter((c) => isStatus(c, 'pending')).length;
@@ -44,7 +50,35 @@ function computeKPIs(candidates: Candidate[]): KPIData {
   const topCollege =
     Object.entries(collegeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? '—';
 
-  return { totalCandidates, shortlisted, pendingReview, averageAIScore, topCollege, highScorers };
+  const assessmentsPending = candidates.filter((c) => isStatus(c, 'assessment sent')).length;
+  const assessmentsCompleted = candidates.filter((c) => isStatus(c, 'assessment completed')).length;
+  const offers = candidates.filter((c) => isStatus(c, 'offer extended')).length;
+  const hired = candidates.filter((c) => isStatus(c, 'hired')).length;
+  const hireRate = totalCandidates ? Math.round((hired / totalCandidates) * 100) : 0;
+
+  const now = Date.now();
+  const weekFromNow = now + 7 * 24 * 60 * 60 * 1000;
+  const scheduled = interviews.filter((i) => i.status === 'scheduled');
+  const upcomingInterviews = scheduled.filter((i) => new Date(i.scheduled_date).getTime() >= now).length;
+  const interviewsThisWeek = scheduled.filter((i) => {
+    const t = new Date(i.scheduled_date).getTime();
+    return t >= now && t <= weekFromNow;
+  }).length;
+
+  return {
+    totalCandidates,
+    shortlisted,
+    pendingReview,
+    averageAIScore,
+    topCollege,
+    highScorers,
+    assessmentsPending,
+    assessmentsCompleted,
+    upcomingInterviews,
+    offers,
+    hireRate,
+    interviewsThisWeek,
+  };
 }
 
 function computeCollegeGroups(candidates: Candidate[]): CollegeGroup[] {
@@ -91,18 +125,23 @@ export function useAppData() {
     setError(null);
 
     try {
-      const res = await fetch('/api/candidates');
-      const body = await res.json();
+      const [candidatesRes, interviewsRes] = await Promise.all([
+        fetch('/api/candidates'),
+        fetch('/api/interviews'),
+      ]);
+      const body = await candidatesRes.json();
+      const interviewsBody = await interviewsRes.json();
 
-      if (!res.ok) {
+      if (!candidatesRes.ok) {
         throw new Error(body?.error ?? 'Failed to load candidates.');
       }
 
       const candidates: Candidate[] = body;
+      const interviews: Interview[] = Array.isArray(interviewsBody) ? interviewsBody : [];
 
       setData({
         candidates,
-        kpis: computeKPIs(candidates),
+        kpis: computeKPIs(candidates, interviews),
         collegeGroups: computeCollegeGroups(candidates),
         scoreBuckets: computeScoreBuckets(candidates),
       });

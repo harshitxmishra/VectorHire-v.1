@@ -23,11 +23,30 @@ import {
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
+import { useEffect, useState } from 'react';
+import { TimelineEvent } from '@/lib/types';
+
+const EVENT_LABELS: Record<string, string> = {
+  applied: 'Applied',
+  resume_parsed: 'Resume Parsed',
+  resume_parse_failed: 'Resume Parsing Failed',
+  ai_evaluated: 'AI Evaluated',
+  github_analyzed: 'GitHub Analysed',
+  jd_matched: 'JD Matched',
+  assessment_sent: 'Assessment Sent',
+  assessment_completed: 'Assessment Completed',
+  interview_eligible: 'Interview Eligible',
+  interview_scheduled: 'Interview Scheduled',
+  interview_completed: 'Interview Completed',
+  offer_sent: 'Offer Extended',
+  status_changed: 'Status Changed',
+};
 
 export interface CandidateInsightsDrawerProps {
   open: boolean;
   onClose: () => void;
   loading: boolean;
+  candidateId?: number;
   candidateName: string;
   errorMessage?: string | null;
   onRetry?: () => void;
@@ -229,6 +248,7 @@ export default function CandidateInsightsDrawer({
   open,
   onClose,
   loading,
+  candidateId,
   candidateName,
   errorMessage,
   onRetry,
@@ -242,6 +262,16 @@ export default function CandidateInsightsDrawer({
   const score = clampScore(data?.score);
   const scoreTone = getScoreTone(score);
   const recommendationIntent = getRecommendationIntent(data?.recommendation);
+  const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
+
+  useEffect(() => {
+    if (open && candidateId) {
+      fetch(`/api/candidates/${candidateId}/timeline`)
+        .then((res) => res.json())
+        .then((body) => setTimeline(Array.isArray(body) ? body : []))
+        .catch(() => setTimeline([]));
+    }
+  }, [open, candidateId]);
 
   return (
     <OverlayDrawer
@@ -282,6 +312,22 @@ export default function CandidateInsightsDrawer({
           )}
         </div>
 
+        {timeline.length > 0 ? (
+          <section className={styles.section}>
+            <Text weight="semibold" className={styles.sectionTitle}>
+              Hiring Timeline
+            </Text>
+            <Card className={styles.card}>
+              {timeline.map((event) => (
+                <div key={event.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                  <Caption1>{EVENT_LABELS[event.event_type] ?? event.event_type}</Caption1>
+                  <Caption1>{new Date(event.created_at).toLocaleString()}</Caption1>
+                </div>
+              ))}
+            </Card>
+          </section>
+        ) : null}
+
         <Divider />
 
         <section className={styles.section}>
@@ -306,9 +352,16 @@ export default function CandidateInsightsDrawer({
                   <Caption1>{scoreTone.label}</Caption1>
                 </div>
 
-                <Badge appearance="filled" color="informative">
-                  AI Score
-                </Badge>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Badge appearance="filled" color="informative">
+                    AI Score
+                  </Badge>
+                  {onRetry ? (
+                    <Button appearance="subtle" size="small" onClick={onRetry}>
+                      Re-evaluate
+                    </Button>
+                  ) : null}
+                </div>
               </div>
 
               <ProgressBar value={score / 100} thickness="large" />

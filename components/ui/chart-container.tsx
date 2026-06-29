@@ -17,7 +17,7 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: tokens.spacingVerticalL,
     padding: tokens.spacingVerticalXL,
-    backgroundColor: 'rgba(15, 23, 42, 0.78)',
+    backgroundColor: tokens.colorNeutralBackground1,
     border: `1px solid ${tokens.colorNeutralStroke2}`,
     borderRadius: tokens.borderRadiusXLarge,
     boxShadow: tokens.shadow8,

@@ -27,6 +27,8 @@ export interface Candidate {
   github_highlights: string[];
   github_strongest_repo: string | null;
   github_last_analyzed: string | null;
+  ai_evaluation: AIEvaluationResult | null;
+  ai_evaluated_at: string | null;
 }
 
 export interface GitHubIntelligence {
@@ -85,6 +87,12 @@ export interface KPIData {
   averageAIScore: number;
   topCollege: string;
   highScorers: number;
+  assessmentsPending: number;
+  assessmentsCompleted: number;
+  upcomingInterviews: number;
+  offers: number;
+  hireRate: number;
+  interviewsThisWeek: number;
 }
 
 export interface CollegeGroup {
@@ -98,3 +106,52 @@ export interface ScoreBucket {
   label: string;
   count: number;
 }
+
+export const PIPELINE_STAGES = [
+  'Applied',
+  'Reviewing',
+  'Shortlisted',
+  'Assessment Sent',
+  'Assessment Completed',
+  'Interview Eligible',
+  'Interview Scheduled',
+  'Interview Completed',
+  'Offer Extended',
+  'Rejected',
+  'Hired',
+] as const;
+
+export type PipelineStage = (typeof PIPELINE_STAGES)[number];
+
+export interface Interview {
+  id: number;
+  created_at: string;
+  candidate_id: number;
+  interviewer_name: string;
+  scheduled_date: string;
+  duration_minutes: number;
+  status: 'scheduled' | 'completed' | 'cancelled';
+  calendar_event_id: string | null;
+  meet_link: string | null;
+  candidates?: { full_name: string; email: string } | null;
+}
+
+export interface EmailLog {
+  id: number;
+  created_at: string;
+  candidate_id: number;
+  email_type: 'assessment' | 'interview' | 'offer';
+  recipient: string;
+  status: 'pending' | 'sent' | 'failed';
+  error_message: string | null;
+  sent_at: string | null;
+}
+
+export interface TimelineEvent {
+  id: number;
+  created_at: string;
+  candidate_id: number;
+  event_type: string;
+  details: string | null;
+}
+

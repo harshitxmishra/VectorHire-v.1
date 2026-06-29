@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { fetchGitHubAnalysis } from '@/lib/services/github-service';
+import { friendlyAIErrorMessage } from '@/lib/ai/error';
 
 export async function POST(req: Request) {
   try {
@@ -13,7 +14,7 @@ export async function POST(req: Request) {
     const analysis = await fetchGitHubAnalysis(url);
     return NextResponse.json(analysis);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'GitHub analysis failed.';
-    return NextResponse.json({ error: message }, { status: 502 });
+    console.error('GitHub analysis failed:', error);
+    return NextResponse.json({ error: friendlyAIErrorMessage(error) }, { status: 502 });
   }
 }

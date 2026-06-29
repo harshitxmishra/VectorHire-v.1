@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"^export default function\\\\|<MainLayout>\\\\|<div className={styles.container}>\\\\|^      </div>$\" app/ai-evaluation/page.tsx)",
+      "Bash(cd \"c:\\\\Users\\\\SujeetMishra\\\\Downloads\\\\vector-hire-ai-operating-system\" && rm -rf app/command-center app/api/command-center && echo deleted)",
+      "Bash(tasklist)",
+      "Bash(rm -rf .next)",
+      "Bash(curl -s http://localhost:3000/api/candidates)",
+      "Bash(node -e ' *)",
+      "Bash(curl -s -X POST http://localhost:3000/api/emails/send -H \"Content-Type: application/json\" -d '{\"candidateIds\":[71],\"type\":\"assessment\"}')",
+      "Bash(curl -s -X DELETE http://localhost:3000/api/candidates/71)",
+      "Bash(pnpm test *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 5 http://localhost:3000/api/candidates)",
+      "Bash(taskkill //F //PID 2848)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 10 http://localhost:3000/api/candidates)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 15 http://localhost:3000/api/candidates)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 8 http://localhost:3000/api/assessments/queue)",
+      "Bash(curl -s http://localhost:3000/api/assessments/queue)",
+      "Bash(taskkill //F //PID 19572 //PID 19468 //PID 2876)",
+      "Bash(curl -s -X POST http://localhost:3000/api/ai/evaluate -H \"Content-Type: application/json\" -d '{\"full_name\":\"Groq Verification Test\",\"college\":\"Test University\",\"cgpa\":8.0,\"github\":\"\",\"status\":\"Pending\",\"ai_score\":70}')"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\SujeetMishra\\Downloads\\vector-hire-ai-operating-system\\app\\command-center"
+    ]
+  }
+}
