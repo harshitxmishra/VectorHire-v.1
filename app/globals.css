@@ -1,0 +1,41 @@
+/* Fluent UI v9 styles components via Griffel (CSS-in-JS).
+   Global CSS stays minimal: a reset and full-height shell only.
+   All colors, typography, and spacing come from Fluent design tokens. */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #020617;
+  color: #f8fafc;
+  font-family:
+    "Segoe UI Variable Text",
+    "Segoe UI",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-image:
+    radial-gradient(circle at top left, rgba(71, 108, 181, 0.14), transparent 24%),
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 18%),
+    linear-gradient(180deg, #020617 0%, #08101f 100%);
+}
+
+#__fluent-root {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+}

@@ -1,0 +1,28 @@
+{
+  "name": "fluent-starter",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@fluentui/react-components": "^9.74.1",
+    "@fluentui/react-icons": "^2.0.329",
+    "@google/genai": "latest",
+    "@supabase/supabase-js": "^2.108.2",
+    "next": "^16.2.9",
+    "openai": "^6.45.0",
+    "papaparse": "^5.5.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/papaparse": "^5.5.2",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5"
+  }
+}
