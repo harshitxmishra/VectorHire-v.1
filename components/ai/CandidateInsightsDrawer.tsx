@@ -39,6 +39,15 @@ export interface CandidateInsightsDrawerProps {
     recommendation: string;
     interviewQuestions: string[];
   };
+  jobMatch?: {
+    jobTitle: string;
+    matchPercentage: number;
+    matchedSkills: string[];
+    missingSkills: string[];
+    experienceMatch: string;
+    educationMatch: string;
+  } | null;
+  jobMatchLoading?: boolean;
 }
 
 const useStyles = makeStyles({
@@ -215,6 +224,8 @@ export default function CandidateInsightsDrawer({
   errorMessage,
   onRetry,
   data,
+  jobMatch,
+  jobMatchLoading,
 }: CandidateInsightsDrawerProps) {
   const styles = useStyles();
   const score = clampScore(data?.score);
@@ -362,6 +373,45 @@ export default function CandidateInsightsDrawer({
             </Card>
           )}
         </section>
+
+        {jobMatch || jobMatchLoading ? (
+          <section className={styles.section}>
+            <Text weight="semibold" className={styles.sectionTitle}>
+              Job Match — {jobMatch?.jobTitle ?? ''}
+            </Text>
+
+            {jobMatchLoading ? (
+              <Card className={styles.card}>
+                <DrawerSectionSkeleton />
+              </Card>
+            ) : jobMatch ? (
+              <Card className={styles.card}>
+                <div className={styles.scoreHeader}>
+                  <div className={styles.scoreValue} style={{ fontSize: '32px', lineHeight: '36px' }}>
+                    {jobMatch.matchPercentage}%
+                  </div>
+                  <Badge appearance="filled" color="informative">
+                    Match Score
+                  </Badge>
+                </div>
+                <Caption1>Experience: {jobMatch.experienceMatch}</Caption1>
+                <Caption1>Education: {jobMatch.educationMatch}</Caption1>
+                <div className={styles.tagRow}>
+                  {jobMatch.matchedSkills.map((skill) => (
+                    <Tag key={skill} appearance="filled" color="success">
+                      {skill}
+                    </Tag>
+                  ))}
+                  {jobMatch.missingSkills.map((skill) => (
+                    <Tag key={skill} appearance="filled" color="danger">
+                      {skill}
+                    </Tag>
+                  ))}
+                </div>
+              </Card>
+            ) : null}
+          </section>
+        ) : null}
 
         <section className={styles.section}>
           <Text weight="semibold" className={styles.sectionTitle}>

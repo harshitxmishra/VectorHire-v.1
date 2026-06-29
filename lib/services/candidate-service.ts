@@ -26,3 +26,29 @@ export async function getCandidates(): Promise<Candidate[]> {
 
   return data ?? [];
 }
+
+export async function updateTestResultByEmail(
+  email: string,
+  testLa: number | null,
+  testCode: number | null
+) {
+  const update: Record<string, number | null> = {};
+  if (testLa !== null) update.test_la = testLa;
+  if (testCode !== null) update.test_code = testCode;
+
+  if (Object.keys(update).length === 0) {
+    return { matched: 0 };
+  }
+
+  const { data, error } = await supabase
+    .from("candidates")
+    .update(update)
+    .ilike("email", email)
+    .select("id");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return { matched: data?.length ?? 0 };
+}
