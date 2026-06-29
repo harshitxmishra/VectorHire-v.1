@@ -1,7 +1,9 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { NextResponse } from 'next/server';
+import { getOrAnalyzeGitHub } from '@/lib/services/github-service';
 
 type CandidateEvaluationInput = {
+  candidate_id?: number;
   full_name: string;
   college: string;
   cgpa: number;
@@ -185,6 +187,21 @@ export async function POST(req: Request) {
       );
     }
 
+    let githubContext = '';
+    if (body.candidate_id) {
+      try {
+        const github = await getOrAnalyzeGitHub(body.candidate_id);
+        githubContext = `\n\nGitHub Intelligence (engineering maturity, not popularity):
+Score: ${github.score}/100
+Verdict: ${github.portfolioVerdict}
+Summary: ${github.summary}
+Top languages: ${github.languages.join(', ') || 'none'}
+Highlights: ${github.highlights.join('; ') || 'none'}`;
+      } catch {
+        // Non-fatal: proceed without GitHub context if analysis fails.
+      }
+    }
+
     const response = await gemini.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: [
@@ -205,7 +222,7 @@ Return exactly this JSON structure:
 }
 
 Candidate:
-${JSON.stringify(body)}`
+${JSON.stringify(body)}${githubContext}`
             },
           ],
         },

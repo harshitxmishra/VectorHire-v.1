@@ -18,7 +18,7 @@ import { BadgeStatus } from '@/components/ui/badge-status';
 import CandidateInsightsDrawer from '@/components/ai/CandidateInsightsDrawer';
 import { DatasetManagerDialog } from '@/components/candidates/DatasetManagerDialog';
 import { useCallback, useEffect, useState } from 'react';
-import { Candidate, AIEvaluationResult, JobDescription, JobMatchResult } from '@/lib/types';
+import { Candidate, AIEvaluationResult, JobDescription, JobMatchResult, GitHubIntelligence } from '@/lib/types';
 
 const useStyles = makeStyles({
   container: {
@@ -116,6 +116,8 @@ export default function CandidatesPage() {
   const [matches, setMatches] = useState<Record<number, JobMatchResult>>({});
   const [matchStatus, setMatchStatus] = useState<Record<number, MatchStatus>>({});
   const [resumeParsing, setResumeParsing] = useState<Record<number, boolean>>({});
+  const [githubIntel, setGithubIntel] = useState<Record<number, GitHubIntelligence>>({});
+  const [githubLoading, setGithubLoading] = useState<Record<number, boolean>>({});
 
   const loadCandidates = useCallback(async () => {
     try {
@@ -176,6 +178,7 @@ export default function CandidatesPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          candidate_id: candidate.id,
           full_name: candidate.full_name,
           college: candidate.college,
           cgpa: candidate.cgpa,
@@ -240,6 +243,26 @@ export default function CandidatesPage() {
     [selectedJobId]
   );
 
+  const runGithubAnalysis = useCallback(async (candidate: Candidate) => {
+    if (!candidate.github) return;
+    setGithubLoading((prev) => ({ ...prev, [candidate.id]: true }));
+
+    try {
+      const response = await fetch('/api/ai/github', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ candidate_id: candidate.id }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? 'GitHub analysis failed.');
+      setGithubIntel((prev) => ({ ...prev, [candidate.id]: result }));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setGithubLoading((prev) => ({ ...prev, [candidate.id]: false }));
+    }
+  }, []);
+
   const handleRetryResume = async (candidate: Candidate) => {
     setResumeParsing((prev) => ({ ...prev, [candidate.id]: true }));
 
@@ -264,6 +287,10 @@ export default function CandidatesPage() {
 
     if (selectedJobId && !matches[candidate.id]) {
       runMatch(candidate);
+    }
+
+    if (candidate.github && !githubIntel[candidate.id]) {
+      runGithubAnalysis(candidate);
     }
   };
 
@@ -404,6 +431,12 @@ export default function CandidatesPage() {
                         : 'Not Evaluated'}
                     </Badge>
 
+                    {candidate.github_portfolio_verdict ? (
+                      <Badge appearance="tint" color="brand">
+                        GitHub: {candidate.github_portfolio_verdict}
+                      </Badge>
+                    ) : null}
+
                     <BadgeStatus status={candidate.status} />
 
                     <Button
@@ -445,6 +478,8 @@ export default function CandidatesPage() {
               }
             : null
         }
+        githubLoading={!!activeCandidate && githubLoading[activeCandidate.id]}
+        githubIntel={activeCandidate ? githubIntel[activeCandidate.id] ?? null : null}
       />
 
       <DatasetManagerDialog

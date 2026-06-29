@@ -48,6 +48,15 @@ export interface CandidateInsightsDrawerProps {
     educationMatch: string;
   } | null;
   jobMatchLoading?: boolean;
+  githubIntel?: {
+    score: number;
+    summary: string;
+    languages: string[];
+    portfolioVerdict: string;
+    highlights: string[];
+    strongestRepo: string | null;
+  } | null;
+  githubLoading?: boolean;
 }
 
 const useStyles = makeStyles({
@@ -226,6 +235,8 @@ export default function CandidateInsightsDrawer({
   data,
   jobMatch,
   jobMatchLoading,
+  githubIntel,
+  githubLoading,
 }: CandidateInsightsDrawerProps) {
   const styles = useStyles();
   const score = clampScore(data?.score);
@@ -408,6 +419,53 @@ export default function CandidateInsightsDrawer({
                     </Tag>
                   ))}
                 </div>
+              </Card>
+            ) : null}
+          </section>
+        ) : null}
+
+        {githubIntel || githubLoading ? (
+          <section className={styles.section}>
+            <Text weight="semibold" className={styles.sectionTitle}>
+              GitHub Intelligence
+            </Text>
+
+            {githubLoading ? (
+              <Card className={styles.card}>
+                <DrawerSectionSkeleton />
+              </Card>
+            ) : githubIntel ? (
+              <Card className={styles.card}>
+                <div className={styles.scoreHeader}>
+                  <div className={styles.scoreValue} style={{ fontSize: '32px', lineHeight: '36px' }}>
+                    {githubIntel.score}
+                  </div>
+                  <Badge appearance="filled" color="brand">
+                    {githubIntel.portfolioVerdict}
+                  </Badge>
+                </div>
+                <Body1>{githubIntel.summary}</Body1>
+                {githubIntel.languages.length > 0 ? (
+                  <div className={styles.tagRow}>
+                    {githubIntel.languages.map((lang) => (
+                      <Tag key={lang} appearance="outline">
+                        {lang}
+                      </Tag>
+                    ))}
+                  </div>
+                ) : null}
+                {githubIntel.highlights.length > 0 ? (
+                  <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+                    {githubIntel.highlights.map((h) => (
+                      <li key={h}>
+                        <Caption1>{h}</Caption1>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {githubIntel.strongestRepo ? (
+                  <Caption1>Strongest repository: {githubIntel.strongestRepo}</Caption1>
+                ) : null}
               </Card>
             ) : null}
           </section>

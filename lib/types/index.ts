@@ -20,6 +20,22 @@ export interface Candidate {
   test_la: number | null;
   test_code: number | null;
   dataset_id: number | null;
+  github_score: number | null;
+  github_summary: string | null;
+  github_languages: string[];
+  github_portfolio_verdict: string | null;
+  github_highlights: string[];
+  github_strongest_repo: string | null;
+  github_last_analyzed: string | null;
+}
+
+export interface GitHubIntelligence {
+  score: number;
+  summary: string;
+  languages: string[];
+  portfolioVerdict: string;
+  highlights: string[];
+  strongestRepo: string | null;
 }
 
 export interface AIEvaluationResult {
