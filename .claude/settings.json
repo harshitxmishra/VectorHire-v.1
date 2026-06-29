@@ -17,7 +17,9 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 8 http://localhost:3000/api/assessments/queue)",
       "Bash(curl -s http://localhost:3000/api/assessments/queue)",
       "Bash(taskkill //F //PID 19572 //PID 19468 //PID 2876)",
-      "Bash(curl -s -X POST http://localhost:3000/api/ai/evaluate -H \"Content-Type: application/json\" -d '{\"full_name\":\"Groq Verification Test\",\"college\":\"Test University\",\"cgpa\":8.0,\"github\":\"\",\"status\":\"Pending\",\"ai_score\":70}')"
+      "Bash(curl -s -X POST http://localhost:3000/api/ai/evaluate -H \"Content-Type: application/json\" -d '{\"full_name\":\"Groq Verification Test\",\"college\":\"Test University\",\"cgpa\":8.0,\"github\":\"\",\"status\":\"Pending\",\"ai_score\":70}')",
+      "Bash(taskkill //F //PID 11020 //PID 12548 //PID 10208)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 20 http://localhost:3000/api/candidates)"
     ],
     "additionalDirectories": [
       "c:\\Users\\SujeetMishra\\Downloads\\vector-hire-ai-operating-system\\app\\command-center"

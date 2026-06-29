@@ -83,10 +83,17 @@ export async function sendCandidateEmail(
     const transporter = getTransporter();
     const { subject, html } = buildTemplate(type, candidateName, extra);
 
+    // Demo mode: deliver to a single inbox instead of the candidate's real
+    // address, while email_logs.recipient still records the intended
+    // recipient for accurate tracking. Set DEMO_EMAIL_OVERRIDE in .env.local;
+    // remove it to send to real candidate addresses again.
+    const deliverTo = process.env.DEMO_EMAIL_OVERRIDE || recipient;
+    const subjectPrefix = process.env.DEMO_EMAIL_OVERRIDE ? `[Demo — intended for ${recipient}] ` : '';
+
     await transporter.sendMail({
       from: process.env.GMAIL_USER,
-      to: recipient,
-      subject,
+      to: deliverTo,
+      subject: `${subjectPrefix}${subject}`,
       html,
     });
 

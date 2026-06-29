@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
-import { getDistinctCandidateIdsForEvent } from '@/lib/services/timeline-service';
 import { getBestMatchPerCandidate } from '@/lib/services/job-match-service';
 
 export interface AssessmentQueueItem {
@@ -20,14 +19,11 @@ export interface AssessmentQueueItem {
 
 export async function GET() {
   try {
-    const [{ data: candidates, error: candidatesError }, evaluatedIds, bestMatches, { data: emailLogs }] =
+    const [{ data: candidates, error: candidatesError }, bestMatches, { data: emailLogs }] =
       await Promise.all([
         supabase
           .from('candidates')
-          .select(
-            'id, full_name, email, college, ai_score, status, resume_url, parsing_status, test_la, test_code'
-          ),
-        getDistinctCandidateIdsForEvent('ai_evaluated'),
+          .select('id, full_name, email, college, ai_score, status, test_la, test_code'),
         getBestMatchPerCandidate(),
         supabase
           .from('email_logs')
@@ -45,11 +41,7 @@ export async function GET() {
       }
     });
 
-    const eligible = (candidates ?? []).filter(
-      (c) => (!c.resume_url || c.parsing_status === 'success') && evaluatedIds.has(c.id)
-    );
-
-    const queue: AssessmentQueueItem[] = eligible.map((c) => {
+    const queue: AssessmentQueueItem[] = (candidates ?? []).map((c) => {
       const overallScore =
         c.test_la !== null && c.test_code !== null ? Math.round((c.test_la + c.test_code) / 2) : null;
       const lastEmail = latestEmailByCandidate.get(c.id);

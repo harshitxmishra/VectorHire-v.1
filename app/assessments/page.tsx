@@ -128,7 +128,7 @@ export default function AssessmentsPage() {
 
         <ChartContainer
           title="Assessment Queue"
-          subtitle="Candidates with a parsed resume and a completed AI evaluation"
+          subtitle="All candidates — send an assessment link directly from here"
         >
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM }}>
             <div className={styles.formRow}>
@@ -157,7 +157,7 @@ export default function AssessmentsPage() {
             {loading ? (
               <p>Loading assessment queue...</p>
             ) : queue.length === 0 ? (
-              <p>No candidates are eligible for assessments yet (resume must be parsed and AI-evaluated first).</p>
+              <p>No candidates yet. Upload a dataset from the Candidates page first.</p>
             ) : (
               queue.map((item) => (
                 <div key={item.id} className={styles.item}>
