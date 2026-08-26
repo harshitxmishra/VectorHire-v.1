@@ -16,9 +16,14 @@ const githubAnalysisSchema: AISchema = {
   required: ['score', 'summary', 'portfolioVerdict', 'highlights'],
 };
 
-function extractUsername(url: string): string | null {
-  const match = url.match(/github\.com\/([A-Za-z0-9-]+)/i);
-  return match?.[1] ?? null;
+function extractUsername(input: string): string | null {
+  const trimmed = input.trim().replace(/\/$/, '');
+  // Full URL: https://github.com/username or github.com/username
+  const urlMatch = trimmed.match(/github\.com\/([A-Za-z0-9_-]+)/i);
+  if (urlMatch) return urlMatch[1];
+  // Plain username (no slashes, no dots)
+  if (/^[A-Za-z0-9_-]+$/.test(trimmed)) return trimmed;
+  return null;
 }
 
 interface GhRepo {
@@ -33,9 +38,9 @@ interface GhRepo {
 }
 
 async function ghFetch(url: string) {
-  const res = await fetch(url, {
-    headers: { Accept: 'application/vnd.github+json' },
-  });
+  const headers: Record<string, string> = { Accept: 'application/vnd.github+json' };
+  if (process.env.GITHUB_TOKEN) headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`;
+  const res = await fetch(url, { headers });
   if (!res.ok) {
     throw new Error(`GitHub API request failed (${res.status}).`);
   }

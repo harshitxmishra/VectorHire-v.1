@@ -5,6 +5,7 @@ import { Title2, Badge, Button, Input, Body1, MessageBar, MessageBarBody, makeSt
 import { ArrowSyncRegular, SearchRegular } from '@fluentui/react-icons';
 import { ChartContainer } from '@/components/ui/chart-container';
 import { useCallback, useEffect, useState } from 'react';
+import { useAppToast } from '@/lib/hooks/use-app-toast';
 import { Candidate, GitHubIntelligence } from '@/lib/types';
 
 const useStyles = makeStyles({
@@ -27,6 +28,7 @@ const useStyles = makeStyles({
 
 export default function GitHubInsightsPage() {
   const styles = useStyles();
+  const notify = useAppToast();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState<Record<number, boolean>>({});
@@ -84,14 +86,20 @@ export default function GitHubInsightsPage() {
   const analyze = async (candidate: Candidate) => {
     setAnalyzing((prev) => ({ ...prev, [candidate.id]: true }));
     try {
-      await fetch('/api/ai/github', {
+      const res = await fetch('/api/ai/github', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ candidate_id: candidate.id }),
       });
-      await load();
+      const body = await res.json();
+      if (!res.ok) {
+        notify(body.error ?? 'GitHub analysis failed.', 'error');
+      } else {
+        notify(`GitHub analysis complete — score ${body.score}/100`, 'success');
+        await load();
+      }
     } catch (err) {
-      console.error(err);
+      notify(err instanceof Error ? err.message : 'GitHub analysis failed.', 'error');
     } finally {
       setAnalyzing((prev) => ({ ...prev, [candidate.id]: false }));
     }
