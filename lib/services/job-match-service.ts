@@ -1,63 +1,30 @@
-import { supabase } from '@/lib/supabase/client';
 import { JobMatchResult } from '@/lib/types';
+import {
+  JobMatchRepository,
+  UpsertJobMatchData,
+} from '@/lib/repositories/job-match-repository';
+import { SupabaseJobMatchRepository } from '@/lib/repositories/supabase-job-match-repository';
 
-export async function getJobMatchesForJD(jobDescriptionId: number): Promise<JobMatchResult[]> {
-  const { data, error } = await supabase
-    .from('job_match_results')
-    .select('*')
-    .eq('job_description_id', jobDescriptionId)
-    .order('match_percentage', { ascending: false });
+export type UpsertJobMatchInput = UpsertJobMatchData;
 
-  if (error) {
-    throw new Error(error.message);
-  }
+const defaultJobMatchRepository = new SupabaseJobMatchRepository();
 
-  return data ?? [];
+export async function getJobMatchesForJD(
+  jobDescriptionId: number,
+  repo: JobMatchRepository = defaultJobMatchRepository
+): Promise<JobMatchResult[]> {
+  return repo.findByJobDescriptionId(jobDescriptionId);
 }
 
-export async function getBestMatchPerCandidate(): Promise<Record<number, number>> {
-  const { data, error } = await supabase
-    .from('job_match_results')
-    .select('candidate_id, match_percentage');
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  const best: Record<number, number> = {};
-  (data ?? []).forEach((row) => {
-    if (!(row.candidate_id in best) || row.match_percentage > best[row.candidate_id]) {
-      best[row.candidate_id] = row.match_percentage;
-    }
-  });
-
-  return best;
+export async function getBestMatchPerCandidate(
+  repo: JobMatchRepository = defaultJobMatchRepository
+): Promise<Record<number, number>> {
+  return repo.findBestScoresPerCandidate();
 }
 
-export interface UpsertJobMatchInput {
-  candidate_id: number;
-  job_description_id: number;
-  match_percentage: number;
-  matched_skills: string[];
-  missing_skills: string[];
-  experience_match: string;
-  education_match: string;
-  recommendation: string;
-}
-
-export async function upsertJobMatch(input: UpsertJobMatchInput): Promise<JobMatchResult> {
-  const { data, error } = await supabase
-    .from('job_match_results')
-    .upsert(
-      { ...input, evaluated_at: new Date().toISOString() },
-      { onConflict: 'candidate_id,job_description_id' }
-    )
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data;
+export async function upsertJobMatch(
+  input: UpsertJobMatchInput,
+  repo: JobMatchRepository = defaultJobMatchRepository
+): Promise<JobMatchResult> {
+  return repo.upsert(input);
 }

@@ -1,8 +1,11 @@
 import nodemailer from 'nodemailer';
-import { supabase } from '@/lib/supabase/client';
 import { logTimelineEvent } from '@/lib/services/timeline-service';
+import { EmailLogRepository, EmailLogType } from '@/lib/repositories/email-log-repository';
+import { SupabaseEmailLogRepository } from '@/lib/repositories/supabase-email-log-repository';
 
-export type EmailType = 'assessment' | 'interview' | 'offer';
+export type EmailType = EmailLogType;
+
+const defaultEmailLogRepository = new SupabaseEmailLogRepository();
 
 function getTransporter() {
   if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
@@ -18,7 +21,7 @@ function getTransporter() {
   });
 }
 
-interface EmailExtra {
+export interface EmailExtra {
   assessmentUrl?: string;
   assessmentTitle?: string;
   assessmentDeadline?: string;
@@ -71,13 +74,21 @@ export async function sendCandidateEmail(
   type: EmailType,
   recipient: string,
   candidateName: string,
-  extra?: EmailExtra
+  extra?: EmailExtra,
+  repo: EmailLogRepository = defaultEmailLogRepository
 ): Promise<{ status: 'sent' | 'failed'; error?: string }> {
-  const { data: log } = await supabase
-    .from('email_logs')
-    .insert({ candidate_id: candidateId, email_type: type, recipient, status: 'pending' })
-    .select()
-    .single();
+  let logId: number | null = null;
+  try {
+    const log = await repo.create({
+      candidate_id: candidateId,
+      email_type: type,
+      recipient,
+      status: 'pending',
+    });
+    logId = log.id;
+  } catch (err) {
+    // If creating initial log fails, proceed with best effort or log warning
+  }
 
   try {
     const transporter = getTransporter();
@@ -97,11 +108,8 @@ export async function sendCandidateEmail(
       html,
     });
 
-    if (log) {
-      await supabase
-        .from('email_logs')
-        .update({ status: 'sent', sent_at: new Date().toISOString() })
-        .eq('id', log.id);
+    if (logId !== null) {
+      await repo.markAsSent(logId);
     }
 
     await logTimelineEvent(candidateId, `${type}_sent`, `Email sent to ${recipient}`);
@@ -109,8 +117,8 @@ export async function sendCandidateEmail(
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to send email.';
 
-    if (log) {
-      await supabase.from('email_logs').update({ status: 'failed', error_message: message }).eq('id', log.id);
+    if (logId !== null) {
+      await repo.markAsFailed(logId, message);
     }
 
     return { status: 'failed', error: message };

@@ -1,20 +1,22 @@
 import {
   Injectable,
+  Inject,
   NotFoundException,
   BadGatewayException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { supabase } from '@/lib/supabase/client';
 import { aiGenerateJSON } from '@/lib/ai/client';
 import { AISchema } from '@/lib/ai/types';
-import {
-  getJobMatchesForJD,
-  getBestMatchPerCandidate,
-  upsertJobMatch,
-} from '@/lib/services/job-match-service';
-import { logTimelineEvent } from '@/lib/services/timeline-service';
 import { JobMatchResult } from '@/lib/types';
 import { MatchCandidateJobDto } from './dto/match-candidate-job.dto';
+import { JOB_MATCH_REPOSITORY } from './matching.constants';
+import { CANDIDATE_REPOSITORY } from '../candidates/candidates.constants';
+import { JOB_REPOSITORY } from '../jobs/jobs.constants';
+import { TIMELINE_REPOSITORY } from '../timeline/timeline.constants';
+import { JobMatchRepository } from '@/lib/repositories/job-match-repository';
+import { CandidateRepository } from '@/lib/repositories/candidate-repository';
+import { JobRepository } from '@/lib/repositories/job-repository';
+import { TimelineRepository } from '@/lib/repositories/timeline-repository';
 
 export type MatchResult = {
   matchPercentage: number;
@@ -47,9 +49,20 @@ const matchSchema: AISchema = {
 
 @Injectable()
 export class MatchingService {
+  constructor(
+    @Inject(JOB_MATCH_REPOSITORY)
+    private readonly jobMatchRepo: JobMatchRepository,
+    @Inject(CANDIDATE_REPOSITORY)
+    private readonly candidateRepo: CandidateRepository,
+    @Inject(JOB_REPOSITORY)
+    private readonly jobRepo: JobRepository,
+    @Inject(TIMELINE_REPOSITORY)
+    private readonly timelineRepo: TimelineRepository,
+  ) {}
+
   async getMatchesForJD(jobDescriptionId: number): Promise<JobMatchResult[]> {
     try {
-      return await getJobMatchesForJD(jobDescriptionId);
+      return await this.jobMatchRepo.findByJobDescriptionId(jobDescriptionId);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to fetch job matches';
       throw new InternalServerErrorException(message);
@@ -58,7 +71,7 @@ export class MatchingService {
 
   async getBestMatches(): Promise<Record<number, number>> {
     try {
-      return await getBestMatchPerCandidate();
+      return await this.jobMatchRepo.findBestScoresPerCandidate();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to fetch best matches';
       throw new InternalServerErrorException(message);
@@ -66,17 +79,16 @@ export class MatchingService {
   }
 
   async evaluateCandidateMatch(dto: MatchCandidateJobDto): Promise<MatchResult> {
-    const [{ data: candidate, error: candidateError }, { data: jobDescription, error: jdError }] =
-      await Promise.all([
-        supabase.from('candidates').select('*').eq('id', dto.candidate_id).single(),
-        supabase.from('job_descriptions').select('*').eq('id', dto.job_description_id).single(),
-      ]);
+    const [candidate, jobDescription] = await Promise.all([
+      this.candidateRepo.findById(dto.candidate_id),
+      this.jobRepo.findById(dto.job_description_id),
+    ]);
 
-    if (candidateError || !candidate) {
+    if (!candidate) {
       throw new NotFoundException('Candidate not found.');
     }
 
-    if (jdError || !jobDescription) {
+    if (!jobDescription) {
       throw new NotFoundException('Job description not found.');
     }
 
@@ -104,11 +116,10 @@ Give a short experienceMatch and educationMatch assessment, and an overall recom
     try {
       parsed = await aiGenerateJSON<MatchResult>({ prompt, schema: matchSchema });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'AI matching failed';
       throw new BadGatewayException('JD matching is temporarily unavailable. Please try again shortly.');
     }
 
-    await upsertJobMatch({
+    await this.jobMatchRepo.upsert({
       candidate_id: dto.candidate_id,
       job_description_id: dto.job_description_id,
       match_percentage: parsed.matchPercentage,
@@ -119,7 +130,11 @@ Give a short experienceMatch and educationMatch assessment, and an overall recom
       recommendation: parsed.recommendation,
     });
 
-    await logTimelineEvent(dto.candidate_id, 'jd_matched', `${parsed.matchPercentage}% match`);
+    await this.timelineRepo.create({
+      candidate_id: dto.candidate_id,
+      event_type: 'jd_matched',
+      details: `${parsed.matchPercentage}% match`,
+    });
 
     return parsed;
   }
