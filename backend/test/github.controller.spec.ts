@@ -2,13 +2,13 @@ import 'reflect-metadata';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GithubController } from '../src/github/github.controller';
 import { GithubService } from '../src/github/github.service';
-import { GitHubAnalysis } from '@/lib/services/github-service';
+import { GitHubIntelligence } from '@/lib/types';
 
 describe('GithubController', () => {
   let controller: GithubController;
   let service: GithubService;
 
-  const mockAnalysis: GitHubAnalysis = {
+  const mockAnalysis: GitHubIntelligence = {
     score: 85,
     portfolioVerdict: 'Strong portfolio',
     summary: 'High activity on open source',

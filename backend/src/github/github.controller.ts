@@ -9,7 +9,7 @@ import { SupabaseAuthGuard } from '../auth/auth.guard';
 import { GithubService } from './github.service';
 import { AnalyzeGitHubDto } from './dto/analyze-github.dto';
 import { SearchGitHubDto } from './dto/search-github.dto';
-import { GitHubAnalysis } from '@/lib/services/github-service';
+import { GitHubIntelligence } from '@/lib/types';
 
 @Controller('ai/github')
 @UseGuards(SupabaseAuthGuard)
@@ -19,14 +19,14 @@ export class GithubController {
   @Post()
   async analyze(
     @Body() dto: AnalyzeGitHubDto,
-  ): Promise<GitHubAnalysis> {
+  ): Promise<GitHubIntelligence> {
     return this.githubService.analyzeCandidate(dto.candidate_id);
   }
 
   @Post('search')
   async search(
     @Body() dto: SearchGitHubDto,
-  ): Promise<GitHubAnalysis> {
+  ): Promise<GitHubIntelligence> {
     const target = dto.github || dto.url;
     if (!target) {
       throw new BadRequestException('github URL or username is required.');

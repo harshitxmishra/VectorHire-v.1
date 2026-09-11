@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GithubService } from '../src/github/github.service';
 import * as githubService from '@/lib/services/github-service';
 import * as timelineService from '@/lib/services/timeline-service';
+import { GitHubIntelligence } from '@/lib/types';
 import { BadGatewayException } from '@nestjs/common';
 
 vi.mock('@/lib/services/github-service', () => ({
@@ -17,7 +18,7 @@ vi.mock('@/lib/services/timeline-service', () => ({
 describe('GithubService', () => {
   let service: GithubService;
 
-  const mockAnalysis: githubService.GitHubAnalysis = {
+  const mockAnalysis: GitHubIntelligence = {
     score: 80,
     portfolioVerdict: 'Solid engineering',
     summary: 'Good activity',

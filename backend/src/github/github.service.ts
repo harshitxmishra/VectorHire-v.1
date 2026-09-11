@@ -5,14 +5,14 @@ import {
 import {
   getOrAnalyzeGitHub,
   fetchGitHubAnalysis,
-  GitHubAnalysis,
 } from '@/lib/services/github-service';
+import { GitHubIntelligence } from '@/lib/types';
 import { logTimelineEvent } from '@/lib/services/timeline-service';
 import { friendlyAIErrorMessage } from '@/lib/ai/error';
 
 @Injectable()
 export class GithubService {
-  async analyzeCandidate(candidateId: number): Promise<GitHubAnalysis> {
+  async analyzeCandidate(candidateId: number): Promise<GitHubIntelligence> {
     try {
       const analysis = await getOrAnalyzeGitHub(candidateId);
       await logTimelineEvent(
@@ -27,7 +27,7 @@ export class GithubService {
     }
   }
 
-  async searchUrl(url: string): Promise<GitHubAnalysis> {
+  async searchUrl(url: string): Promise<GitHubIntelligence> {
     try {
       return await fetchGitHubAnalysis(url);
     } catch (error) {
