@@ -27,6 +27,13 @@ describe('DatasetsService', () => {
       findAll: vi.fn().mockResolvedValue(mockDatasets),
       findById: vi.fn().mockResolvedValue(mockDatasets[0]),
       create: vi.fn().mockResolvedValue(mockDatasets[0]),
+      importAtomic: vi.fn().mockResolvedValue({
+        dataset_id: 1,
+        dataset_name: 'candidates-2026.csv',
+        mode: 'replace',
+        total_candidates: 10,
+        success: true,
+      }),
     };
 
     mockCandidateRepo = {
@@ -62,6 +69,34 @@ describe('DatasetsService', () => {
   it('should clear candidates via candidate repository', async () => {
     await service.clearCandidates();
     expect(mockCandidateRepo.deleteAll).toHaveBeenCalled();
+  });
+
+  it('should execute atomic dataset import via repository', async () => {
+    const input = {
+      dataset_name: 'candidates-2026.csv',
+      uploaded_by: 'Admin',
+      mode: 'replace' as const,
+      candidates: [
+        { full_name: 'Alice', email: 'alice@example.com' },
+      ],
+    };
+
+    const result = await service.importDatasetAtomic(input);
+    expect(result.success).toBe(true);
+    expect(result.dataset_id).toBe(1);
+    expect(mockDatasetRepo.importAtomic).toHaveBeenCalledWith(input);
+  });
+
+  it('should throw InternalServerErrorException if atomic import fails or rolls back', async () => {
+    mockDatasetRepo.importAtomic.mockRejectedValue(new Error('Transaction rolled back: invalid constraint'));
+    await expect(
+      service.importDatasetAtomic({
+        dataset_name: 'invalid.csv',
+        uploaded_by: null,
+        mode: 'replace',
+        candidates: [{ full_name: 'Alice', email: 'alice@example.com' }],
+      })
+    ).rejects.toThrow(InternalServerErrorException);
   });
 
   it('should throw InternalServerErrorException if getDatasets fails', async () => {

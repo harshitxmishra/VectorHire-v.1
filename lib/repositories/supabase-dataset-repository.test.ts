@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase/client';
 vi.mock('@/lib/supabase/client', () => ({
   supabase: {
     from: vi.fn(),
+    rpc: vi.fn(),
   },
 }));
 
@@ -18,6 +19,15 @@ describe('SupabaseDatasetRepository', () => {
     mode: 'append' as const,
     total_candidates: 45,
     created_at: '2026-09-11T10:00:00.000Z',
+  };
+
+  const mockCandidate = {
+    full_name: 'Alice Johnson',
+    email: 'alice@example.com',
+    college: 'MIT',
+    cgpa: 3.9,
+    status: 'Applied',
+    ai_score: 88,
   };
 
   beforeEach(() => {
@@ -84,6 +94,88 @@ describe('SupabaseDatasetRepository', () => {
     expect(result).toEqual(mockDataset);
     expect(supabase.from).toHaveBeenCalledWith('dataset_uploads');
     expect(mockQuery.insert).toHaveBeenCalledWith(input);
+  });
+
+  it('should execute atomic dataset import in replace mode via RPC', async () => {
+    const mockRpcResult = {
+      dataset_id: 10,
+      dataset_name: 'candidates-2026.csv',
+      mode: 'replace',
+      total_candidates: 1,
+      success: true,
+    };
+    (supabase.rpc as any).mockResolvedValue({ data: mockRpcResult, error: null });
+
+    const input = {
+      dataset_name: 'candidates-2026.csv',
+      uploaded_by: 'admin@example.com',
+      mode: 'replace' as const,
+      candidates: [mockCandidate],
+    };
+
+    const result = await repository.importAtomic(input);
+    expect(result).toEqual(mockRpcResult);
+    expect(supabase.rpc).toHaveBeenCalledWith('import_dataset_atomic', {
+      p_dataset_name: 'candidates-2026.csv',
+      p_uploaded_by: 'admin@example.com',
+      p_mode: 'replace',
+      p_candidates: [mockCandidate],
+    });
+  });
+
+  it('should execute atomic dataset import in append mode via RPC', async () => {
+    const mockRpcResult = {
+      dataset_id: 11,
+      dataset_name: 'batch-2.csv',
+      mode: 'append',
+      total_candidates: 1,
+      success: true,
+    };
+    (supabase.rpc as any).mockResolvedValue({ data: mockRpcResult, error: null });
+
+    const input = {
+      dataset_name: 'batch-2.csv',
+      uploaded_by: null,
+      mode: 'append' as const,
+      candidates: [mockCandidate],
+    };
+
+    const result = await repository.importAtomic(input);
+    expect(result).toEqual(mockRpcResult);
+    expect(supabase.rpc).toHaveBeenCalledWith('import_dataset_atomic', {
+      p_dataset_name: 'batch-2.csv',
+      p_uploaded_by: null,
+      p_mode: 'append',
+      p_candidates: [mockCandidate],
+    });
+  });
+
+  it('should throw error on atomic import when candidates list is empty', async () => {
+    await expect(
+      repository.importAtomic({
+        dataset_name: 'empty.csv',
+        uploaded_by: null,
+        mode: 'replace',
+        candidates: [],
+      })
+    ).rejects.toThrow('Candidates list cannot be empty for atomic import');
+    expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
+  it('should throw and propagate database error on atomic import failure/rollback', async () => {
+    (supabase.rpc as any).mockResolvedValue({
+      data: null,
+      error: { message: 'check constraint violation: invalid status' },
+    });
+
+    await expect(
+      repository.importAtomic({
+        dataset_name: 'invalid.csv',
+        uploaded_by: null,
+        mode: 'replace',
+        candidates: [mockCandidate],
+      })
+    ).rejects.toThrow('Database error during atomic dataset import: check constraint violation: invalid status');
   });
 
   it('should throw error when database query fails', async () => {

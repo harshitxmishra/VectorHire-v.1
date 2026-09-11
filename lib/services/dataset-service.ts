@@ -2,6 +2,8 @@ import { DatasetUpload } from '@/lib/types';
 import {
   DatasetRepository,
   CreateDatasetUploadData,
+  AtomicDatasetImportInput,
+  AtomicDatasetImportResult,
 } from '@/lib/repositories/dataset-repository';
 import { SupabaseDatasetRepository } from '@/lib/repositories/supabase-dataset-repository';
 import { CandidateRepository } from '@/lib/repositories/candidate-repository';
@@ -27,4 +29,11 @@ export async function deleteAllCandidates(
   candidateRepo: CandidateRepository = defaultCandidateRepository
 ): Promise<void> {
   await candidateRepo.deleteAll();
+}
+
+export async function importDatasetAtomic(
+  input: AtomicDatasetImportInput,
+  repo: DatasetRepository = defaultDatasetRepository
+): Promise<AtomicDatasetImportResult> {
+  return repo.importAtomic(input);
 }

@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { parseCSV, mapCandidateRow } from "@/lib/utils/csv-parser";
-import { insertCandidates } from "@/lib/services/candidate-service";
-import { recordDatasetUpload, deleteAllCandidates } from "@/lib/services/dataset-service";
-import { logTimelineEvent } from "@/lib/services/timeline-service";
+import { importDatasetAtomic } from "@/lib/services/dataset-service";
 
 export async function POST(req: Request) {
   try {
@@ -30,29 +28,19 @@ export async function POST(req: Request) {
       );
     }
 
-    if (mode === "replace") {
-      await deleteAllCandidates();
-    }
-
-    const dataset = await recordDatasetUpload({
+    // Atomic transaction: dataset creation, replacement/append, candidates insertion,
+    // and lifecycle timeline logging occur atomically in a single PostgreSQL transaction.
+    const result = await importDatasetAtomic({
       dataset_name: datasetName,
       uploaded_by: uploadedBy,
       mode,
-      total_candidates: candidates.length,
+      candidates,
     });
-
-    const inserted = await insertCandidates(
-      candidates.map((candidate) => ({ ...candidate, dataset_id: dataset.id }))
-    );
-
-    await Promise.all(
-      inserted.map((c: { id: number }) => logTimelineEvent(c.id, 'applied', 'Imported into dataset'))
-    );
 
     return NextResponse.json({
       success: true,
-      inserted: inserted.length,
-      datasetId: dataset.id,
+      inserted: result.total_candidates,
+      datasetId: result.dataset_id,
       mode,
     });
   } catch (err: any) {

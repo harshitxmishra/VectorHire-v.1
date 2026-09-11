@@ -6,7 +6,12 @@ import {
 import { DatasetUpload } from '@/lib/types';
 import { DATASET_REPOSITORY } from './datasets.constants';
 import { CANDIDATE_REPOSITORY } from '../candidates/candidates.constants';
-import { DatasetRepository, CreateDatasetUploadData } from '@/lib/repositories/dataset-repository';
+import {
+  DatasetRepository,
+  CreateDatasetUploadData,
+  AtomicDatasetImportInput,
+  AtomicDatasetImportResult,
+} from '@/lib/repositories/dataset-repository';
 import { CandidateRepository } from '@/lib/repositories/candidate-repository';
 
 @Injectable()
@@ -41,6 +46,15 @@ export class DatasetsService {
       await this.candidateRepo.deleteAll();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to clear candidates';
+      throw new InternalServerErrorException(message);
+    }
+  }
+
+  async importDatasetAtomic(input: AtomicDatasetImportInput): Promise<AtomicDatasetImportResult> {
+    try {
+      return await this.datasetRepo.importAtomic(input);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to execute atomic dataset import';
       throw new InternalServerErrorException(message);
     }
   }
