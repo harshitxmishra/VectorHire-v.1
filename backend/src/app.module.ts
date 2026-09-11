@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { SupabaseAuthGuard } from './auth/auth.guard';
 import { HealthModule } from './health/health.module';
 import { CandidatesModule } from './candidates/candidates.module';
+import { JobsModule } from './jobs/jobs.module';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
@@ -17,6 +18,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     AuthModule,
     HealthModule,
     CandidatesModule,
+    JobsModule,
   ],
   providers: [
     {
