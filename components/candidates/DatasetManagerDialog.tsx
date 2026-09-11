@@ -97,7 +97,7 @@ export function DatasetManagerDialog({ open, onClose, onImported }: DatasetManag
 
   const loadHistory = useCallback(async () => {
     try {
-      const res = await fetch('/api/datasets');
+      const res = await fetch('/api/v1/datasets');
       const body = await res.json();
       if (res.ok) setHistory(body);
     } catch {

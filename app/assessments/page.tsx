@@ -83,7 +83,7 @@ export default function AssessmentsPage() {
   const sendAssessment = async (candidateId: number) => {
     setSendingId(candidateId);
     try {
-      const res = await fetch('/api/emails/send', {
+      const res = await fetch('/api/v1/emails/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -5,6 +5,15 @@ import { AuthModule } from './auth/auth.module';
 import { SupabaseAuthGuard } from './auth/auth.guard';
 import { HealthModule } from './health/health.module';
 import { CandidatesModule } from './candidates/candidates.module';
+import { JobsModule } from './jobs/jobs.module';
+import { InterviewsModule } from './interviews/interviews.module';
+import { TimelineModule } from './timeline/timeline.module';
+import { MatchingModule } from './matching/matching.module';
+import { AiModule } from './ai/ai.module';
+import { EmailModule } from './email/email.module';
+import { ResumeModule } from './resume/resume.module';
+import { GithubModule } from './github/github.module';
+import { DatasetsModule } from './datasets/datasets.module';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
@@ -17,6 +26,15 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     AuthModule,
     HealthModule,
     CandidatesModule,
+    JobsModule,
+    InterviewsModule,
+    TimelineModule,
+    MatchingModule,
+    AiModule,
+    EmailModule,
+    ResumeModule,
+    GithubModule,
+    DatasetsModule,
   ],
   providers: [
     {
