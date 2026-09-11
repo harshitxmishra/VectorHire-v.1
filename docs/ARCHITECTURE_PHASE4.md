@@ -76,6 +76,31 @@ Timeline events are treated as mandatory audit records for candidate lifecycle i
 
 ---
 
-### 2.8 Security & Authorization
-- Destructive operations and dataset imports continue to require standard NestJS authentication (`SupabaseAuthGuard`) and Phase 0 security controls.
-- Stored procedure executes with `security definer` under PostgreSQL RLS policies.
+### 2.8 Security Hardening & Privilege Isolation Model
+
+The PostgreSQL stored procedure `public.import_dataset_atomic` is treated as **privileged infrastructure**, shielded from direct untrusted client RPC execution:
+
+1. **Why `SECURITY DEFINER` is Required**:
+   - Multi-table dataset replacement atomically modifies `public.candidates`, `public.dataset_uploads`, and `public.candidate_timeline`.
+   - Executing as `SECURITY DEFINER` allows the function to execute these cross-table batch mutations with the authority of the schema owner without granting broad, direct table-level `DELETE`/`INSERT` permissions to low-privilege client connections.
+
+2. **Why `search_path` is Explicitly Pinned**:
+   - To prevent `SECURITY DEFINER` search-path hijacking attacks, the function explicitly declares `SET search_path = public, pg_temp`.
+   - All referenced objects are schema-qualified (`public.candidates`, `public.dataset_uploads`, `public.candidate_timeline`), preventing malicious users from creating temporary objects to shadow standard tables or functions.
+
+3. **Why `PUBLIC`, `anon`, and `authenticated` EXECUTE is Revoked**:
+   - In PostgreSQL, functions in `public` are granted `EXECUTE` to `PUBLIC` by default. PostgREST automatically exposes such functions as callable REST RPC endpoints (`/rest/v1/rpc/import_dataset_atomic`).
+   - If left unrestricted, an unauthenticated client (`anon`) or an arbitrary authenticated end-user (`authenticated`) could issue direct HTTP requests to wipe the candidates table in `replace` mode.
+   - To prevent bypassing the application's authentication, admin verification, and `x-confirm-destructive` header checks, `EXECUTE` is explicitly revoked from `PUBLIC`, `anon`, and `authenticated`.
+
+4. **Permitted Execution Role (`service_role`)**:
+   - `EXECUTE` is granted exclusively to `service_role`.
+   - The trusted server-side backend client (`lib/supabase/client.ts`) uses `SUPABASE_SERVICE_ROLE_KEY` to authenticate as `service_role`.
+   - No browser client or external PostgREST connection can invoke `import_dataset_atomic`.
+
+5. **Integrity with NestJS Application Authorization**:
+   - All dataset import and replacement requests MUST flow through the NestJS application layer (`POST /api/v1/datasets/import`):
+     - `SupabaseAuthGuard` verifies the user's JWT.
+     - `AdminGuard` / admin validation ensures the user has import privileges.
+     - `x-confirm-destructive` header enforces explicit user confirmation for `mode = 'replace'`.
+   - Only after all guards pass does the application service delegate to `DatasetRepository.importAtomic`, which executes via the trusted `service_role`. This ensures complete defense-in-depth without duplicating custom RBAC logic inside SQL.

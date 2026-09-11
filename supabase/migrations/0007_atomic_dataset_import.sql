@@ -11,6 +11,7 @@ create or replace function public.import_dataset_atomic(
 returns jsonb
 language plpgsql
 security definer
+set search_path = public, pg_temp
 as $$
 declare
   v_dataset_id bigint;
@@ -130,3 +131,9 @@ begin
   return v_result;
 end;
 $$;
+
+-- Revoke all default EXECUTE privileges from PUBLIC and untrusted client roles
+revoke execute on function public.import_dataset_atomic(text, text, text, jsonb) from public, anon, authenticated;
+
+-- Grant EXECUTE exclusively to the service_role used by trusted server-side API operations
+grant execute on function public.import_dataset_atomic(text, text, text, jsonb) to service_role;
