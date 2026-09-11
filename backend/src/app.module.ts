@@ -1,0 +1,36 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD, APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { AuthModule } from './auth/auth.module';
+import { SupabaseAuthGuard } from './auth/auth.guard';
+import { HealthModule } from './health/health.module';
+import { CandidatesModule } from './candidates/candidates.module';
+import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['../.env.local', '../.env', '.env.local', '.env'],
+    }),
+    AuthModule,
+    HealthModule,
+    CandidatesModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: SupabaseAuthGuard,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: GlobalExceptionFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
+    },
+  ],
+})
+export class AppModule {}

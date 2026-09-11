@@ -1,9 +1,12 @@
 'use client';
 
-import { makeStyles, tokens } from '@fluentui/react-components';
+import { makeStyles, tokens, shorthands, Caption1, Badge } from '@fluentui/react-components';
 import { ChartContainer } from '@/components/ui/chart-container';
 import { BadgeStatus } from '@/components/ui/badge-status';
 import { Candidate, CollegeGroup, ScoreBucket } from '@/lib/types';
+import { HiringFunnelChart } from '@/components/analytics/HiringFunnelChart';
+import { ScoreDistributionChart } from '@/components/analytics/ScoreDistributionChart';
+import { CollegeYieldChart } from '@/components/analytics/CollegeYieldChart';
 
 const useStyles = makeStyles({
   grid: {
@@ -25,20 +28,21 @@ const useStyles = makeStyles({
     justifyContent: 'space-between',
     paddingTop: tokens.spacingVerticalM,
     paddingBottom: tokens.spacingVerticalM,
-    paddingLeft: tokens.spacingHorizontalM,
-    paddingRight: tokens.spacingHorizontalM,
-    backgroundColor: tokens.colorNeutralBackground2,
-    borderRadius: tokens.borderRadiusSmall,
-    transition: `background-color ${tokens.durationFast}`,
+    paddingLeft: tokens.spacingHorizontalL,
+    paddingRight: tokens.spacingHorizontalL,
+    backgroundColor: 'rgba(30, 41, 59, 0.65)',
+    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.1)'),
+    transition: `all ${tokens.durationFast}`,
     ':hover': {
-      backgroundColor: tokens.colorNeutralBackground2Hover,
+      backgroundColor: 'rgba(39, 54, 78, 0.85)',
+      ...shorthands.borderColor('rgba(129, 140, 248, 0.3)'),
     },
   },
   itemContent: {
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalS,
+    gap: '2px',
   },
   itemLabel: {
     fontWeight: 600,
@@ -48,29 +52,6 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground3,
   },
-  funnelContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: tokens.spacingVerticalL,
-  },
-  funnelStage: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: tokens.spacingHorizontalM,
-  },
-  funnelBar: {
-    flex: 1,
-    height: '24px',
-    borderRadius: tokens.borderRadiusSmall,
-    backgroundColor: tokens.colorBrandBackground,
-    opacity: 1,
-    transition: `all ${tokens.durationFast}`,
-  },
-  funnelLabel: {
-    minWidth: '120px',
-    fontSize: tokens.fontSizeBase300,
-    fontWeight: 600,
-  },
 });
 
 interface AnalyticsSectionProps {
@@ -79,27 +60,28 @@ interface AnalyticsSectionProps {
   scoreBuckets: ScoreBucket[];
 }
 
-export function AnalyticsSection({ candidates, collegeGroups, scoreBuckets }: AnalyticsSectionProps) {
+export function AnalyticsSection({
+  candidates,
+  collegeGroups,
+  scoreBuckets,
+}: AnalyticsSectionProps) {
   const styles = useStyles();
 
   const hiringFunnel = [
-    { stage: 'Applied', count: candidates.length },
+    { stage: '1. Sourced & Applied', count: candidates.length },
     {
-      stage: 'Pending',
-      count: candidates.filter((c) => c.status?.toLowerCase() === 'pending').length,
+      stage: '2. AI Screened (>70%)',
+      count: candidates.filter((c) => (c.ai_score || 0) >= 70).length,
     },
     {
-      stage: 'Shortlisted',
+      stage: '3. Shortlisted',
       count: candidates.filter((c) => c.status?.toLowerCase() === 'shortlisted').length,
     },
     {
-      stage: 'Hired',
+      stage: '4. Hired',
       count: candidates.filter((c) => c.status?.toLowerCase() === 'hired').length,
     },
   ];
-
-  const maxFunnelCount = Math.max(1, ...hiringFunnel.map((s) => s.count));
-  const maxScoreCount = Math.max(1, ...scoreBuckets.map((b) => b.count));
 
   const recentCandidates = [...candidates]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -108,26 +90,25 @@ export function AnalyticsSection({ candidates, collegeGroups, scoreBuckets }: An
   return (
     <div className={styles.grid}>
       {/* Hiring Funnel */}
-      <ChartContainer title="Hiring Funnel" subtitle="Candidates by pipeline stage">
-        <div className={styles.funnelContainer}>
-          {hiringFunnel.map((stage, idx) => (
-            <div key={stage.stage} className={styles.funnelStage}>
-              <div
-                className={styles.funnelBar}
-                style={{
-                  width: `${(stage.count / maxFunnelCount) * 100}%`,
-                  opacity: 1 - idx * 0.15,
-                }}
-              />
-              <span className={styles.funnelLabel}>{stage.stage}</span>
-              <span style={{ fontWeight: 600 }}>{stage.count}</span>
-            </div>
-          ))}
-        </div>
+      <ChartContainer title="Recruitment Funnel" subtitle="Pipeline velocity by stage">
+        <HiringFunnelChart stages={hiringFunnel} />
+      </ChartContainer>
+
+      {/* AI Score Distribution */}
+      <ChartContainer
+        title="AI Score Distribution"
+        subtitle="Candidates grouped by match score range"
+      >
+        <ScoreDistributionChart scoreBuckets={scoreBuckets} />
+      </ChartContainer>
+
+      {/* Top Colleges */}
+      <ChartContainer title="Top College Yield" subtitle="Conversion rate by academic pool">
+        <CollegeYieldChart collegeGroups={collegeGroups} />
       </ChartContainer>
 
       {/* Recently Added Candidates */}
-      <ChartContainer title="Recently Added" subtitle="Newest candidates in the database">
+      <ChartContainer title="Recently Processed" subtitle="Latest candidates evaluated in workspace">
         <div className={styles.list}>
           {recentCandidates.length === 0 ? (
             <div className={styles.itemDescription}>No candidates yet.</div>
@@ -137,85 +118,24 @@ export function AnalyticsSection({ candidates, collegeGroups, scoreBuckets }: An
                 <div className={styles.itemContent}>
                   <div className={styles.itemLabel}>{candidate.full_name}</div>
                   <div className={styles.itemDescription}>
-                    {candidate.college} • AI score {candidate.ai_score}
+                    {candidate.college} • AI score {candidate.ai_score}%
                   </div>
                 </div>
-                <div style={{ fontSize: tokens.fontSizeBase200, color: tokens.colorNeutralForeground3 }}>
-                  {new Date(candidate.created_at).toLocaleDateString()}
-                </div>
+                <Badge
+                  appearance="tint"
+                  color={
+                    candidate.status?.toLowerCase() === 'hired'
+                      ? 'success'
+                      : candidate.status?.toLowerCase() === 'shortlisted'
+                      ? 'informative'
+                      : 'subtle'
+                  }
+                >
+                  {candidate.status || 'Applied'}
+                </Badge>
               </div>
             ))
           )}
-        </div>
-      </ChartContainer>
-
-      {/* AI Score Distribution */}
-      <ChartContainer title="AI Score Distribution" subtitle="Candidates grouped by AI score range">
-        <div className={styles.funnelContainer}>
-          {scoreBuckets.map((bucket, idx) => (
-            <div key={bucket.label} className={styles.funnelStage}>
-              <div
-                className={styles.funnelBar}
-                style={{
-                  width: `${(bucket.count / maxScoreCount) * 100}%`,
-                  opacity: 1 - idx * 0.15,
-                }}
-              />
-              <span className={styles.funnelLabel}>{bucket.label}</span>
-              <span style={{ fontWeight: 600 }}>{bucket.count}</span>
-            </div>
-          ))}
-        </div>
-      </ChartContainer>
-
-      {/* Top Colleges */}
-      <ChartContainer title="Top Colleges" subtitle="Candidate pools by college">
-        <div className={styles.list}>
-          {collegeGroups.length === 0 ? (
-            <div className={styles.itemDescription}>No candidates yet.</div>
-          ) : (
-            collegeGroups.slice(0, 5).map((group) => (
-              <div key={group.college} className={styles.listItem}>
-                <div className={styles.itemContent}>
-                  <div className={styles.itemLabel}>{group.college}</div>
-                  <div className={styles.itemDescription}>
-                    {group.shortlistedCount} shortlisted • {group.totalCandidates} total • avg score{' '}
-                    {group.averageAIScore}
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </ChartContainer>
-
-      {/* Candidate Pipeline */}
-      <ChartContainer title="Candidate Status Distribution" subtitle="Breakdown of candidates by current status">
-        <div className={styles.list}>
-          {['new', 'pending', 'shortlisted', 'rejected', 'hired'].map((status) => {
-            const statusCandidates = candidates.filter(
-              (c) => c.status?.toLowerCase() === status
-            ).length;
-            const percentage = candidates.length
-              ? ((statusCandidates / candidates.length) * 100).toFixed(0)
-              : '0';
-
-            return (
-              <div key={status} className={styles.listItem}>
-                <div className={styles.itemContent}>
-                  <BadgeStatus status={status} />
-                </div>
-                <div style={{ display: 'flex', gap: tokens.spacingHorizontalM, alignItems: 'center' }}>
-                  <div style={{ minWidth: '80px', textAlign: 'right', fontWeight: 600 }}>
-                    {statusCandidates}
-                  </div>
-                  <div style={{ minWidth: '40px', textAlign: 'right', color: tokens.colorNeutralForeground3 }}>
-                    {percentage}%
-                  </div>
-                </div>
-              </div>
-            );
-          })}
         </div>
       </ChartContainer>
     </div>

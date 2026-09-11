@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getInterviews, createInterview } from '@/lib/services/interview-service';
+import { validateInterviewInput } from '@/lib/validation/schemas';
 
 export async function GET() {
   try {
@@ -14,26 +15,14 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const validation = validateInterviewInput(body);
 
-    if (
-      typeof body?.candidate_id !== 'number' ||
-      typeof body?.interviewer_name !== 'string' ||
-      typeof body?.scheduled_date !== 'string'
-    ) {
-      return NextResponse.json(
-        { error: 'candidate_id, interviewer_name, and scheduled_date are required.' },
-        { status: 400 }
-      );
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error, field: validation.field }, { status: 400 });
     }
 
-    const interview = await createInterview({
-      candidate_id: body.candidate_id,
-      interviewer_name: body.interviewer_name,
-      scheduled_date: body.scheduled_date,
-      duration_minutes: typeof body.duration_minutes === 'number' ? body.duration_minutes : 60,
-    });
-
-    return NextResponse.json(interview);
+    const interview = await createInterview(validation.data);
+    return NextResponse.json(interview, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to schedule interview.';
     return NextResponse.json({ error: message }, { status: 500 });

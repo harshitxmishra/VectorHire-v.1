@@ -3,6 +3,7 @@ import {
   getJobDescriptions,
   createJobDescription,
 } from "@/lib/services/job-description-service";
+import { validateJobDescriptionInput } from "@/lib/validation/schemas";
 
 export async function GET() {
   try {
@@ -17,17 +18,14 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const validation = validateJobDescriptionInput(body);
 
-    if (typeof body?.title !== "string" || typeof body?.requirements !== "string") {
-      return NextResponse.json({ error: "title and requirements are required." }, { status: 400 });
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error, field: validation.field }, { status: 400 });
     }
 
-    const jobDescription = await createJobDescription({
-      title: body.title,
-      requirements: body.requirements,
-    });
-
-    return NextResponse.json(jobDescription);
+    const jobDescription = await createJobDescription(validation.data);
+    return NextResponse.json(jobDescription, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to create job description.";
     return NextResponse.json({ error: message }, { status: 500 });

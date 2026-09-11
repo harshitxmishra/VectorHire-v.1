@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import { sendCandidateEmail, EmailType } from '@/lib/services/email-service';
+import { validateEmailSendInput } from '@/lib/validation/schemas';
 
 const STATUS_AFTER_SEND: Record<EmailType, string | null> = {
   assessment: 'Assessment Sent',
@@ -11,13 +12,14 @@ const STATUS_AFTER_SEND: Record<EmailType, string | null> = {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const candidateIds: number[] = Array.isArray(body?.candidateIds) ? body.candidateIds : [];
-    const type: EmailType = body?.type;
-    const force: boolean = body?.force === true;
+    const validation = validateEmailSendInput(body);
 
-    if (candidateIds.length === 0 || !['assessment', 'interview', 'offer'].includes(type)) {
-      return NextResponse.json({ error: 'candidateIds and a valid type are required.' }, { status: 400 });
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error, field: validation.field }, { status: 400 });
     }
+
+    const { candidateIds, type, force, assessmentTitle, assessmentDeadline, assessmentUrl, recruiterName } =
+      validation.data;
 
     const { data: candidates, error } = await supabase
       .from('candidates')
@@ -46,10 +48,10 @@ export async function POST(req: Request) {
         }
 
         const result = await sendCandidateEmail(candidate.id, type, candidate.email, candidate.full_name, {
-          assessmentTitle: body.assessmentTitle,
-          assessmentDeadline: body.assessmentDeadline,
-          assessmentUrl: body.assessmentUrl,
-          recruiterName: body.recruiterName,
+          assessmentTitle,
+          assessmentDeadline,
+          assessmentUrl,
+          recruiterName,
         });
 
         if (result.status === 'sent' && STATUS_AFTER_SEND[type]) {

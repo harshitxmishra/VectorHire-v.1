@@ -56,3 +56,46 @@ export async function updateTestResultByEmail(
 
   return { matchedIds: (data ?? []).map((row) => row.id), eligible, overallScore };
 }
+
+export async function getCandidateById(id: number): Promise<Candidate | null> {
+  const { data, error } = await supabase
+    .from('candidates')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
+export async function updateCandidateStatus(
+  id: number,
+  status: string
+): Promise<Candidate> {
+  const { data, error } = await supabase
+    .from('candidates')
+    .update({ status })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
+export async function deleteCandidate(id: number): Promise<void> {
+  const { error } = await supabase
+    .from('candidates')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}

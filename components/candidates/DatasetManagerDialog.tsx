@@ -193,7 +193,12 @@ export function DatasetManagerDialog({ open, onClose, onImported }: DatasetManag
     setError(null);
 
     try {
-      const res = await fetch('/api/candidates', { method: 'DELETE' });
+      const res = await fetch('/api/candidates', {
+        method: 'DELETE',
+        headers: {
+          'x-confirm-destructive': 'true',
+        },
+      });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? 'Delete failed.');
 

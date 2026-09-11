@@ -13,6 +13,7 @@ import {
   Theme,
 } from '@fluentui/react-components'
 import { useServerInsertedHTML } from 'next/navigation'
+import { AuthProvider } from '@/lib/context/auth-context'
 
 type ThemeMode = 'light' | 'dark'
 
@@ -76,14 +77,9 @@ const vectorLightTheme = createLightTheme(brand);
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [renderer] = React.useState(() => createDOMRenderer())
-  const didRenderRef = React.useRef(false)
   const [mode, setMode] = React.useState<ThemeMode>('dark')
 
   useServerInsertedHTML(() => {
-    if (didRenderRef.current) {
-      return
-    }
-    didRenderRef.current = true
     return <>{renderToStyleElements(renderer)}</>
   })
 
@@ -91,12 +87,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <RendererProvider renderer={renderer}>
       <SSRProvider>
         <ThemeModeContext.Provider value={{ mode, setMode }}>
-          <FluentProvider
-            theme={mode === 'light' ? vectorLightTheme : vectorDarkTheme}
-            id="__fluent-root"
-          >
-            {children}
-          </FluentProvider>
+          <AuthProvider>
+            <FluentProvider
+              theme={mode === 'light' ? vectorLightTheme : vectorDarkTheme}
+              id="__fluent-root"
+            >
+              {children}
+            </FluentProvider>
+          </AuthProvider>
         </ThemeModeContext.Provider>
       </SSRProvider>
     </RendererProvider>
