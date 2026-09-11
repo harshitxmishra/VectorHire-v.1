@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { parseCSV } from "@/lib/utils/csv-parser";
+import { parseCSV, mapCandidateRow } from "@/lib/utils/csv-parser";
 import { insertCandidates } from "@/lib/services/candidate-service";
 
 export async function POST(req: Request) {
@@ -17,7 +17,8 @@ export async function POST(req: Request) {
 
     const csvText = await file.text();
 
-    const candidates = parseCSV(csvText);
+    const rows = parseCSV(csvText);
+    const candidates = rows.map(mapCandidateRow).filter((r): r is NonNullable<typeof r> => r !== null);
 
     const inserted = await insertCandidates(candidates);
 

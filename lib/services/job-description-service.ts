@@ -1,58 +1,40 @@
-import { supabase } from '@/lib/supabase/client';
 import { JobDescription } from '@/lib/types';
+import { JobRepository, CreateJobData, UpdateJobData } from '@/lib/repositories/job-repository';
+import { SupabaseJobRepository } from '@/lib/repositories/supabase-job-repository';
 
-export async function getJobDescriptions(): Promise<JobDescription[]> {
-  const { data, error } = await supabase
-    .from('job_descriptions')
-    .select('*')
-    .order('created_at', { ascending: false });
+const defaultJobRepository: JobRepository = new SupabaseJobRepository();
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data ?? [];
+export async function getJobDescriptions(
+  repo: JobRepository = defaultJobRepository
+): Promise<JobDescription[]> {
+  return repo.findAll();
 }
 
-export async function createJobDescription(input: {
-  title: string;
-  requirements: string;
-}): Promise<JobDescription> {
-  const { data, error } = await supabase
-    .from('job_descriptions')
-    .insert(input)
-    .select()
-    .single();
+export async function getJobDescriptionById(
+  id: number,
+  repo: JobRepository = defaultJobRepository
+): Promise<JobDescription | null> {
+  return repo.findById(id);
+}
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data;
+export async function createJobDescription(
+  input: CreateJobData,
+  repo: JobRepository = defaultJobRepository
+): Promise<JobDescription> {
+  return repo.create(input);
 }
 
 export async function updateJobDescription(
   id: number,
-  input: { title: string; requirements: string }
+  input: UpdateJobData,
+  repo: JobRepository = defaultJobRepository
 ): Promise<JobDescription> {
-  const { data, error } = await supabase
-    .from('job_descriptions')
-    .update({ ...input, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data;
+  return repo.update(id, input);
 }
 
-export async function deleteJobDescription(id: number) {
-  const { error } = await supabase.from('job_descriptions').delete().eq('id', id);
-
-  if (error) {
-    throw new Error(error.message);
-  }
+export async function deleteJobDescription(
+  id: number,
+  repo: JobRepository = defaultJobRepository
+): Promise<void> {
+  return repo.delete(id);
 }

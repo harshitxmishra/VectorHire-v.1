@@ -1,11 +1,11 @@
 import { Candidate } from "@/lib/types";
-import { CandidateRepository } from "@/lib/repositories/candidate-repository";
+import { CandidateRepository, CreateCandidateData } from "@/lib/repositories/candidate-repository";
 import { SupabaseCandidateRepository } from "@/lib/repositories/supabase-candidate-repository";
 
 const defaultCandidateRepository: CandidateRepository = new SupabaseCandidateRepository();
 
 export async function insertCandidates(
-  candidates: Partial<Candidate>[],
+  candidates: CreateCandidateData[],
   repo: CandidateRepository = defaultCandidateRepository
 ): Promise<Candidate[]> {
   return repo.createMany(candidates);
