@@ -228,7 +228,7 @@ export default function CandidatesPage() {
       return;
     }
 
-    fetch(`/api/job-matches?jobDescriptionId=${selectedJobId}`)
+    fetch(`/api/v1/matching?jobDescriptionId=${selectedJobId}`)
       .then((res) => res.json())
       .then((body) => {
         const results: JobMatchResult[] = Array.isArray(body) ? body : [];
@@ -249,7 +249,7 @@ export default function CandidatesPage() {
     setEvaluationError(null);
 
     try {
-      const response = await fetch('/api/ai/evaluate', {
+      const response = await fetch('/api/v1/ai/evaluate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -285,7 +285,7 @@ export default function CandidatesPage() {
       setMatchStatus((prev) => ({ ...prev, [candidate.id]: 'matching' }));
 
       try {
-        const response = await fetch('/api/ai/match', {
+        const response = await fetch('/api/v1/matching/evaluate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ candidate_id: candidate.id, job_description_id: selectedJobId }),

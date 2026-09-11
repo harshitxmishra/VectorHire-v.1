@@ -8,6 +8,8 @@ import { CandidatesModule } from './candidates/candidates.module';
 import { JobsModule } from './jobs/jobs.module';
 import { InterviewsModule } from './interviews/interviews.module';
 import { TimelineModule } from './timeline/timeline.module';
+import { MatchingModule } from './matching/matching.module';
+import { AiModule } from './ai/ai.module';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
@@ -23,6 +25,8 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     JobsModule,
     InterviewsModule,
     TimelineModule,
+    MatchingModule,
+    AiModule,
   ],
   providers: [
     {

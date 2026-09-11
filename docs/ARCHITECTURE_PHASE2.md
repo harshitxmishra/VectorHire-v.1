@@ -12,10 +12,10 @@
 | `/api/interviews` (GET, POST) | `/api/v1/interviews` | Interviews | Yes | Unit + App | **Verified** |
 | `/api/interviews/[id]` (PATCH) | `/api/v1/interviews/:id` | Interviews | Yes | Unit + App | **Verified** |
 | `/api/candidates/[id]/timeline` (GET) | `/api/v1/candidates/:id/timeline` | Timeline | Yes | Unit + App | **Verified** |
-| `/api/job-matches` (GET) | `/api/v1/matching` | Matching | Pending | Pending | **Pending** |
-| `/api/ai/match` (POST) | `/api/v1/matching/evaluate` | Matching | Pending | Pending | **Pending** |
+| `/api/job-matches` (GET) | `/api/v1/matching` | Matching | Yes | Unit + App | **Verified** |
+| `/api/ai/match` (POST) | `/api/v1/matching/evaluate` | Matching | Yes | Unit + App | **Verified** |
 | `/api/ai/resume-match` (POST) | `/api/v1/matching/resume` | Matching | Pending | Pending | **Pending** |
-| `/api/ai/evaluate` (POST) | `/api/v1/ai/evaluate` | AI Evaluation | Pending | Pending | **Pending** |
+| `/api/ai/evaluate` (POST) | `/api/v1/ai/evaluate` | AI Evaluation | Yes | Unit + App | **Verified** |
 | `/api/assessments/queue` (POST) | `/api/v1/ai/assessments/queue` | AI Evaluation | Pending | Pending | **Pending** |
 | `/api/emails/send` (POST) | `/api/v1/emails/send` | Email | Pending | Pending | **Pending** |
 | `/api/candidates/[id]/parse-resume` (POST) | `/api/v1/candidates/:id/parse-resume` | Resume | Pending | Pending | **Pending** |
