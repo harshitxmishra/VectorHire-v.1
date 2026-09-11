@@ -10,6 +10,7 @@ import { InterviewsModule } from './interviews/interviews.module';
 import { TimelineModule } from './timeline/timeline.module';
 import { MatchingModule } from './matching/matching.module';
 import { AiModule } from './ai/ai.module';
+import { EmailModule } from './email/email.module';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
@@ -27,6 +28,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     TimelineModule,
     MatchingModule,
     AiModule,
+    EmailModule,
   ],
   providers: [
     {

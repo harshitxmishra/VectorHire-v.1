@@ -17,7 +17,7 @@
 | `/api/ai/resume-match` (POST) | `/api/v1/matching/resume` | Matching | Pending | Pending | **Pending** |
 | `/api/ai/evaluate` (POST) | `/api/v1/ai/evaluate` | AI Evaluation | Yes | Unit + App | **Verified** |
 | `/api/assessments/queue` (POST) | `/api/v1/ai/assessments/queue` | AI Evaluation | Pending | Pending | **Pending** |
-| `/api/emails/send` (POST) | `/api/v1/emails/send` | Email | Pending | Pending | **Pending** |
+| `/api/emails/send` (POST) | `/api/v1/emails/send` | Email | Yes | Unit + App | **Verified** |
 | `/api/candidates/[id]/parse-resume` (POST) | `/api/v1/candidates/:id/parse-resume` | Resume | Pending | Pending | **Pending** |
 | `/api/ai/github` (POST) | `/api/v1/ai/github` | GitHub | Pending | Pending | **Pending** |
 | `/api/ai/github/search` (POST) | `/api/v1/ai/github/search` | GitHub | Pending | Pending | **Pending** |
