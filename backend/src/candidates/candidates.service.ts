@@ -1,21 +1,25 @@
-import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import {
-  getCandidates,
-  getCandidateById,
-  insertCandidates,
-  updateCandidateStatus as domainUpdateStatus,
-  deleteCandidate as domainDeleteCandidate,
-} from '@/lib/services/candidate-service';
-import { deleteAllCandidates as domainDeleteAll } from '@/lib/services/dataset-service';
+  Injectable,
+  Inject,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
+import { CandidateRepository } from '@/lib/repositories/candidate-repository';
+import { CANDIDATE_REPOSITORY } from './candidates.constants';
 import { logTimelineEvent } from '@/lib/services/timeline-service';
 import { Candidate } from '@/lib/types';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
 
 @Injectable()
 export class CandidatesService {
+  constructor(
+    @Inject(CANDIDATE_REPOSITORY)
+    private readonly candidateRepository: CandidateRepository,
+  ) {}
+
   async findAll(): Promise<Candidate[]> {
     try {
-      return await getCandidates();
+      return await this.candidateRepository.findAll();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to fetch candidates';
       throw new InternalServerErrorException(message);
@@ -25,7 +29,7 @@ export class CandidatesService {
   async findOne(id: number): Promise<Candidate> {
     let candidate: Candidate | null;
     try {
-      candidate = await getCandidateById(id);
+      candidate = await this.candidateRepository.findById(id);
     } catch (error) {
       const message = error instanceof Error ? error.message : `Failed to fetch candidate ${id}`;
       throw new InternalServerErrorException(message);
@@ -40,8 +44,7 @@ export class CandidatesService {
 
   async create(dto: CreateCandidateDto): Promise<Candidate> {
     try {
-      const inserted = await insertCandidates([dto]);
-      const candidate = inserted?.[0] as Candidate;
+      const candidate = await this.candidateRepository.create(dto);
       if (candidate?.id) {
         await logTimelineEvent(candidate.id, 'applied', 'Candidate profile created');
       }
@@ -57,7 +60,7 @@ export class CandidatesService {
     await this.findOne(id);
 
     try {
-      const updated = await domainUpdateStatus(id, status);
+      const updated = await this.candidateRepository.updateStatus(id, status);
       await logTimelineEvent(id, 'status_changed', `Moved to ${status}`);
       return updated;
     } catch (error) {
@@ -71,7 +74,7 @@ export class CandidatesService {
     await this.findOne(id);
 
     try {
-      await domainDeleteCandidate(id);
+      await this.candidateRepository.delete(id);
       return { success: true, message: `Candidate ${id} deleted.` };
     } catch (error) {
       const message = error instanceof Error ? error.message : `Failed to delete candidate ${id}`;
@@ -81,7 +84,7 @@ export class CandidatesService {
 
   async removeAll(): Promise<{ success: boolean; message: string }> {
     try {
-      await domainDeleteAll();
+      await this.candidateRepository.deleteAll();
       return { success: true, message: 'All candidate records purged successfully.' };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to purge candidates';
