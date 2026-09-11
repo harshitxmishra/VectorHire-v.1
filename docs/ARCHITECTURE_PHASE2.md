@@ -9,8 +9,8 @@
 | `/api/health` | `/api/v1/health` | Health | N/A (Public probe) | Unit | **Verified** |
 | `/api/job-descriptions` (GET, POST) | `/api/v1/jobs` | Jobs | Yes | Unit + App | **Verified** |
 | `/api/job-descriptions/[id]` (PUT, DELETE) | `/api/v1/jobs/:id` | Jobs | Yes | Unit + App | **Verified** |
-| `/api/interviews` (GET, POST) | `/api/v1/interviews` | Interviews | Pending | Pending | **Pending** |
-| `/api/interviews/[id]` (PATCH) | `/api/v1/interviews/:id` | Interviews | Pending | Pending | **Pending** |
+| `/api/interviews` (GET, POST) | `/api/v1/interviews` | Interviews | Yes | Unit + App | **Verified** |
+| `/api/interviews/[id]` (PATCH) | `/api/v1/interviews/:id` | Interviews | Yes | Unit + App | **Verified** |
 | `/api/candidates/[id]/timeline` (GET) | `/api/v1/candidates/:id/timeline` | Timeline | Pending | Pending | **Pending** |
 | `/api/job-matches` (GET) | `/api/v1/matching` | Matching | Pending | Pending | **Pending** |
 | `/api/ai/match` (POST) | `/api/v1/matching/evaluate` | Matching | Pending | Pending | **Pending** |
