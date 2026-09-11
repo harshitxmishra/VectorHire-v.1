@@ -21,8 +21,8 @@
 | `/api/candidates/[id]/parse-resume` (POST) | `/api/v1/candidates/:id/parse-resume` | Resume | Yes | Unit + App | **Verified** |
 | `/api/ai/github` (POST) | `/api/v1/ai/github` | GitHub | Yes | Unit + App | **Verified** |
 | `/api/ai/github/search` (POST) | `/api/v1/ai/github/search` | GitHub | Yes | Unit + App | **Verified** |
-| `/api/datasets` (GET) | `/api/v1/datasets` | Datasets | Pending | Pending | **Pending** |
-| `/api/candidates/import-test-results` (POST) | `/api/v1/candidates/import-test-results` | Datasets | Pending | Pending | **Pending** |
+| `/api/datasets` (GET) | `/api/v1/datasets` | Datasets | Yes | Unit + App | **Verified** |
+| `/api/candidates/import-test-results` (POST) | Legacy Next.js route | Datasets / CSV | Coexisting | Coexisting | **Legacy / Deferred** |
 | `/api/candidates/import` (POST) | Legacy Next.js route | Datasets / CSV | Coexisting | Coexisting | **Legacy / Deferred** |
 | `/api/candidates/export` (GET) | Legacy Next.js route | Datasets / CSV | Coexisting | Coexisting | **Legacy / Deferred** |
 | `/api/auth/google/*` | Legacy Next.js OAuth | Auth | Coexisting | Coexisting | **Legacy / Deferred** |

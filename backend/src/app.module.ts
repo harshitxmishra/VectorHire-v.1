@@ -13,6 +13,7 @@ import { AiModule } from './ai/ai.module';
 import { EmailModule } from './email/email.module';
 import { ResumeModule } from './resume/resume.module';
 import { GithubModule } from './github/github.module';
+import { DatasetsModule } from './datasets/datasets.module';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
@@ -33,6 +34,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     EmailModule,
     ResumeModule,
     GithubModule,
+    DatasetsModule,
   ],
   providers: [
     {
