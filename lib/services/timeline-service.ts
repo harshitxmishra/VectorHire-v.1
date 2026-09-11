@@ -1,44 +1,39 @@
-import { supabase } from '@/lib/supabase/client';
 import { TimelineEvent } from '@/lib/types';
+import { TimelineRepository } from '@/lib/repositories/timeline-repository';
+import { SupabaseTimelineRepository } from '@/lib/repositories/supabase-timeline-repository';
+
+const defaultTimelineRepository: TimelineRepository = new SupabaseTimelineRepository();
 
 export async function logTimelineEvent(
   candidateId: number,
   eventType: string,
-  details?: string
-) {
-  const { error } = await supabase
-    .from('candidate_timeline')
-    .insert({ candidate_id: candidateId, event_type: eventType, details: details ?? null });
-
-  if (error) {
+  details?: string,
+  repo: TimelineRepository = defaultTimelineRepository
+): Promise<void> {
+  try {
+    await repo.create({
+      candidate_id: candidateId,
+      event_type: eventType,
+      details: details ?? null,
+    });
+  } catch (error) {
     // Timeline logging is best-effort and must never break the calling workflow.
-    console.error('Failed to log timeline event:', error.message);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('Failed to log timeline event:', message);
   }
 }
 
-export async function getTimeline(candidateId: number): Promise<TimelineEvent[]> {
-  const { data, error } = await supabase
-    .from('candidate_timeline')
-    .select('*')
-    .eq('candidate_id', candidateId)
-    .order('created_at', { ascending: true });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data ?? [];
+export async function getTimeline(
+  candidateId: number,
+  repo: TimelineRepository = defaultTimelineRepository
+): Promise<TimelineEvent[]> {
+  return repo.findByCandidateId(candidateId);
 }
 
-export async function getDistinctCandidateIdsForEvent(eventType: string): Promise<Set<number>> {
-  const { data, error } = await supabase
-    .from('candidate_timeline')
-    .select('candidate_id')
-    .eq('event_type', eventType);
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return new Set((data ?? []).map((row) => row.candidate_id));
+export async function getDistinctCandidateIdsForEvent(
+  eventType: string,
+  repo: TimelineRepository = defaultTimelineRepository
+): Promise<Set<number>> {
+  const ids = await repo.findDistinctCandidateIdsByEventType(eventType);
+  return new Set(ids);
 }
