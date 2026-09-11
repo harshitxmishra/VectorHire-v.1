@@ -11,7 +11,7 @@
 | `/api/job-descriptions/[id]` (PUT, DELETE) | `/api/v1/jobs/:id` | Jobs | Yes | Unit + App | **Verified** |
 | `/api/interviews` (GET, POST) | `/api/v1/interviews` | Interviews | Yes | Unit + App | **Verified** |
 | `/api/interviews/[id]` (PATCH) | `/api/v1/interviews/:id` | Interviews | Yes | Unit + App | **Verified** |
-| `/api/candidates/[id]/timeline` (GET) | `/api/v1/candidates/:id/timeline` | Timeline | Pending | Pending | **Pending** |
+| `/api/candidates/[id]/timeline` (GET) | `/api/v1/candidates/:id/timeline` | Timeline | Yes | Unit + App | **Verified** |
 | `/api/job-matches` (GET) | `/api/v1/matching` | Matching | Pending | Pending | **Pending** |
 | `/api/ai/match` (POST) | `/api/v1/matching/evaluate` | Matching | Pending | Pending | **Pending** |
 | `/api/ai/resume-match` (POST) | `/api/v1/matching/resume` | Matching | Pending | Pending | **Pending** |
