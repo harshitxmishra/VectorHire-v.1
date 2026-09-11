@@ -5,8 +5,8 @@
 Phase 4 focuses on infrastructure reliability, transactional integrity, and asynchronous job processing for compute-heavy workflows.
 
 ### Phase 4 Roadmap:
-- **Phase 4.1 — Transaction / Atomicity Boundary** `[COMPLETED / CURRENT]`
-- **Phase 4.2 — Redis + BullMQ Foundation** `[PLANNED - NOT IMPLEMENTED]`
+- **Phase 4.1 — Transaction / Atomicity Boundary** `[COMPLETED]`
+- **Phase 4.2 — Redis + BullMQ Foundation** `[COMPLETED / CURRENT]`
 - **Phase 4.3 — Asynchronous AI Evaluation Workers** `[PLANNED - NOT IMPLEMENTED]`
 - **Phase 4.4 — Asynchronous Resume Parsing & GitHub Intelligence Workers** `[PLANNED - NOT IMPLEMENTED]`
 - **Phase 4.5 — Asynchronous Dataset Ingestion Workers** `[PLANNED - NOT IMPLEMENTED]`
@@ -104,3 +104,126 @@ The PostgreSQL stored procedure `public.import_dataset_atomic` is treated as **p
      - `AdminGuard` / admin validation ensures the user has import privileges.
      - `x-confirm-destructive` header enforces explicit user confirmation for `mode = 'replace'`.
    - Only after all guards pass does the application service delegate to `DatasetRepository.importAtomic`, which executes via the trusted `service_role`. This ensures complete defense-in-depth without duplicating custom RBAC logic inside SQL.
+
+---
+
+## 3. Phase 4.2: Redis + BullMQ Queue Foundation
+
+> **Scope Confirmation:**
+> Phase 4.2 establishes queue infrastructure only. Existing AI, resume, GitHub, dataset, and email workflows remain synchronous until their respective migration phases.
+
+### 3.1 Why Redis is Being Introduced
+Redis provides a high-performance, in-memory data store with atomic primitives, pub/sub, and stream persistence. In VectorHire, Redis acts as the backing broker for BullMQ job queues, enabling durable job buffering, concurrency control, and rate limiting across asynchronous background workers without placing locking strain on PostgreSQL.
+
+### 3.2 Why BullMQ is Being Introduced
+BullMQ is the modern, TypeScript-native distributed queue standard for Node.js. It provides robust job lifecycles (waiting, active, delayed, failed, completed), automatic exponential retry backoffs, deduplication, concurrency control, and telemetry out of the box.
+
+### 3.3 Redis vs. BullMQ Roles
+- **Redis**: The transport and storage layer (holds queues, job hashes, sorted sets for delayed/retried jobs, and lock keys).
+- **BullMQ**: The orchestration and lifecycle framework (manages workers, job enqueuing, backoff scheduling, rate limiting, and failure states).
+
+### 3.4 Queue vs. Worker Distinction
+- **Queue (`QueueService` / `Queue`)**: Enqueues jobs, assigns IDs, sets retry options, and checks infrastructure health. Enqueueing is fast and non-blocking.
+- **Worker (`DemonstratorWorker` / `Worker`)**: Consumes jobs asynchronously, executes handler logic, and reports completion or errors. Workers run independently and do not block HTTP request cycles.
+
+### 3.5 Current Queue Architecture
+```text
+                  NestJS API
+                     │
+                     ▼
+             Queue Infrastructure
+                     │
+                     ▼
+                  BullMQ
+                     │
+                     ▼
+                   Redis
+                     │
+                     ▼
+             Demonstrator Worker
+```
+
+### 3.6 Centralized Queue & Job Naming Conventions
+All queue and job names are defined as constants in [`backend/src/queue/queue.constants.ts`](file:///c:/Users/SujeetMishra/Music/VectorHire/VectorHire-v.1/backend/src/queue/queue.constants.ts):
+- **Demonstrator Queue**: `QUEUE_NAMES.DEMONSTRATOR = 'demonstrator-queue'`
+- **Demonstrator Job**: `JOB_NAMES.DEMONSTRATOR_PING = 'demonstrator:ping'`
+
+*Future queues in subsequent phases will follow this established naming pattern:*
+- `ai-evaluation-queue` (`ai:evaluate`, `ai:match`)
+- `resume-parsing-queue` (`resume:parse`)
+- `github-insights-queue` (`github:analyze`)
+- `email-dispatch-queue` (`email:send`)
+
+### 3.7 Job Payload Design Principles
+Job payloads in BullMQ must remain lightweight, strongly typed, and decoupled from heavy database entities:
+- **Do NOT** serialize complete entities, full resumes, raw CSV files, or API credentials into Redis.
+- **DO** include resource IDs, minimal operational flags, and correlation IDs for distributed tracing.
+- **Demonstrator Payload Contract**:
+  ```typescript
+  export interface DemonstratorJobData {
+    message: string;
+    correlationId: string;
+    timestamp: number;
+    shouldFail?: boolean;
+  }
+  ```
+
+### 3.8 Retry Policy & Backoff Configuration
+Default queue retry parameters are configured centrally:
+```typescript
+export const DEFAULT_JOB_OPTIONS = {
+  attempts: 3,
+  backoff: {
+    type: 'exponential' as const,
+    delay: 1000, // 1s, 2s, 4s
+  },
+  removeOnComplete: {
+    age: 3600, // keep completed jobs 1 hour
+    count: 1000,
+  },
+  removeOnFail: {
+    age: 86400, // keep failed jobs 24 hours
+    count: 5000,
+  },
+};
+```
+*Note on Retry Separation:* Queue retries handle background worker crashes or transient infrastructure issues. The existing AI client (`lib/ai/client.ts`) retains its own provider fallback and retry logic for in-flight LLM calls.
+
+### 3.9 Failure Handling
+- Throwing an unhandled exception inside a worker handler marks the job attempt as failed in BullMQ.
+- BullMQ automatically reschedules the job according to the exponential backoff policy until `attempts` is exhausted.
+- Exhausted jobs transition to the `failed` state in Redis, allowing inspection without crashing the NestJS application process.
+
+### 3.10 Graceful Shutdown
+Both `QueueService` and `DemonstratorWorker` implement NestJS `OnApplicationShutdown`:
+- Workers stop accepting new jobs and wait for active processing to complete via `worker.close()`.
+- Queue instances close connection handles via `queue.close()`.
+- Redis client connections terminate cleanly with `redis.quit()`.
+
+### 3.11 Redis Health Checking
+`QueueService.isRedisHealthy()` performs an isolated `PING` with a 1.5s timeout. The backend health endpoint (`GET /api/v1/health`) incorporates Redis reachability (`{ redis: { status: 'healthy' | 'unhealthy' | 'unreachable' } }`) without exposing credentials, connection strings, or treating Redis failure as a fatal process crash.
+
+### 3.12 Security Considerations
+- Redis is an internal infrastructure service and is never exposed directly to the public web or frontend clients.
+- Environment variables (`REDIS_URL`, `REDIS_HOST`, `REDIS_PASSWORD`, `REDIS_TLS`) are loaded securely via `dotenv` / `ConfigModule`.
+- Secrets, tokens, and sensitive job payloads are strictly excluded from logging.
+
+### 3.13 Demonstrator Job
+The demonstrator queue/worker validates end-to-end BullMQ infrastructure with a zero-side-effect payload:
+- Verifies enqueuing, payload typing, processing, intentional failure retry handling, and graceful shutdown without performing any AI, database, or email operations.
+
+### 3.14 Workloads NOT Yet Migrated
+Existing workflows remain synchronous and unchanged in Phase 4.2:
+- `/api/v1/ai/evaluate` (Synchronous)
+- `/api/v1/candidates/:id/parse-resume` (Synchronous)
+- `/api/v1/ai/github` (Synchronous)
+- `/api/v1/datasets` (Synchronous & Atomic via `import_dataset_atomic`)
+- `/api/v1/emails/send` (Synchronous)
+
+### 3.15 Phase 4.3+ Roadmap
+- **Phase 4.3**: Asynchronous AI Evaluation Workers (migrating matching and candidate scoring to BullMQ).
+- **Phase 4.4**: Asynchronous Resume Parsing & GitHub Intelligence Workers.
+- **Phase 4.5**: Asynchronous Dataset Ingestion Workers.
+- **Phase 4.6**: Bulk Email Dispatch Queue.
+- **Phase 4.7**: Reliability, Rate Limiting & Observability.
+
