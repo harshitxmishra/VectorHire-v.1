@@ -325,7 +325,7 @@ export default function CandidatesPage() {
       setGithubLoading((prev) => ({ ...prev, [candidate.id]: true }));
 
       try {
-        const response = await fetch('/api/ai/github', {
+        const response = await fetch('/api/v1/ai/github', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ candidate_id: candidate.id }),
@@ -350,7 +350,7 @@ export default function CandidatesPage() {
     setResumeParsing((prev) => ({ ...prev, [candidate.id]: true }));
 
     try {
-      const res = await fetch(`/api/candidates/${candidate.id}/parse-resume`, { method: 'POST' });
+      const res = await fetch(`/api/v1/candidates/${candidate.id}/parse-resume`, { method: 'POST' });
       await res.json();
       await loadCandidates();
     } catch (err) {

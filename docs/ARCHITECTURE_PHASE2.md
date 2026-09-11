@@ -18,9 +18,9 @@
 | `/api/ai/evaluate` (POST) | `/api/v1/ai/evaluate` | AI Evaluation | Yes | Unit + App | **Verified** |
 | `/api/assessments/queue` (POST) | `/api/v1/ai/assessments/queue` | AI Evaluation | Pending | Pending | **Pending** |
 | `/api/emails/send` (POST) | `/api/v1/emails/send` | Email | Yes | Unit + App | **Verified** |
-| `/api/candidates/[id]/parse-resume` (POST) | `/api/v1/candidates/:id/parse-resume` | Resume | Pending | Pending | **Pending** |
-| `/api/ai/github` (POST) | `/api/v1/ai/github` | GitHub | Pending | Pending | **Pending** |
-| `/api/ai/github/search` (POST) | `/api/v1/ai/github/search` | GitHub | Pending | Pending | **Pending** |
+| `/api/candidates/[id]/parse-resume` (POST) | `/api/v1/candidates/:id/parse-resume` | Resume | Yes | Unit + App | **Verified** |
+| `/api/ai/github` (POST) | `/api/v1/ai/github` | GitHub | Yes | Unit + App | **Verified** |
+| `/api/ai/github/search` (POST) | `/api/v1/ai/github/search` | GitHub | Yes | Unit + App | **Verified** |
 | `/api/datasets` (GET) | `/api/v1/datasets` | Datasets | Pending | Pending | **Pending** |
 | `/api/candidates/import-test-results` (POST) | `/api/v1/candidates/import-test-results` | Datasets | Pending | Pending | **Pending** |
 | `/api/candidates/import` (POST) | Legacy Next.js route | Datasets / CSV | Coexisting | Coexisting | **Legacy / Deferred** |

@@ -46,7 +46,7 @@ export default function GitHubInsightsPage() {
     setSearchResult(null);
 
     try {
-      const res = await fetch('/api/ai/github/search', {
+      const res = await fetch('/api/v1/ai/github/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ github: searchUrl.trim() }),
@@ -63,7 +63,7 @@ export default function GitHubInsightsPage() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch('/api/candidates');
+      const res = await fetch('/api/v1/candidates');
       const body = await res.json();
       setCandidates(Array.isArray(body) ? body : []);
     } catch (err) {
@@ -86,7 +86,7 @@ export default function GitHubInsightsPage() {
   const analyze = async (candidate: Candidate) => {
     setAnalyzing((prev) => ({ ...prev, [candidate.id]: true }));
     try {
-      const res = await fetch('/api/ai/github', {
+      const res = await fetch('/api/v1/ai/github', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ candidate_id: candidate.id }),
