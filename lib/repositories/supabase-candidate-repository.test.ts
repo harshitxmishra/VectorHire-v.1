@@ -73,7 +73,7 @@ describe('SupabaseCandidateRepository', () => {
     };
     (supabase.from as any).mockReturnValue(mockQuery);
 
-    const result = await repository.create({ full_name: 'John Doe' });
+    const result = await repository.create({ full_name: 'John Doe', email: 'john@example.com' });
     expect(result).toEqual(mockCandidate);
   });
 

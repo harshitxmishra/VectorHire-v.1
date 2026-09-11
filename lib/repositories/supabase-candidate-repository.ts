@@ -1,6 +1,11 @@
 import { supabase } from '@/lib/supabase/client';
-import { Candidate } from '@/lib/types';
-import { CandidateRepository, CandidateFilters } from './candidate-repository';
+import { Candidate, PipelineStage } from '@/lib/types';
+import {
+  CandidateRepository,
+  CandidateFilters,
+  CreateCandidateData,
+  UpdateCandidateData,
+} from './candidate-repository';
 
 export class SupabaseCandidateRepository implements CandidateRepository {
   async findAll(filters?: CandidateFilters): Promise<Candidate[]> {
@@ -11,6 +16,15 @@ export class SupabaseCandidateRepository implements CandidateRepository {
 
     if (filters?.status) {
       query = query.eq('status', filters.status);
+    }
+    if (filters?.college) {
+      query = query.eq('college', filters.college);
+    }
+    if (filters?.minScore !== undefined) {
+      query = query.gte('ai_score', filters.minScore);
+    }
+    if (filters?.maxScore !== undefined) {
+      query = query.lte('ai_score', filters.maxScore);
     }
     if (filters?.search) {
       query = query.or(`full_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
@@ -56,7 +70,7 @@ export class SupabaseCandidateRepository implements CandidateRepository {
     return data ?? [];
   }
 
-  async create(candidate: Partial<Candidate>): Promise<Candidate> {
+  async create(candidate: CreateCandidateData): Promise<Candidate> {
     const { data, error } = await supabase
       .from('candidates')
       .insert(candidate)
@@ -69,7 +83,7 @@ export class SupabaseCandidateRepository implements CandidateRepository {
     return data;
   }
 
-  async createMany(candidates: Partial<Candidate>[]): Promise<Candidate[]> {
+  async createMany(candidates: CreateCandidateData[]): Promise<Candidate[]> {
     if (candidates.length === 0) return [];
 
     const { data, error } = await supabase
@@ -83,7 +97,7 @@ export class SupabaseCandidateRepository implements CandidateRepository {
     return data ?? [];
   }
 
-  async updateStatus(id: number, status: string): Promise<Candidate> {
+  async updateStatus(id: number, status: PipelineStage | string): Promise<Candidate> {
     const { data, error } = await supabase
       .from('candidates')
       .update({ status })
@@ -97,7 +111,7 @@ export class SupabaseCandidateRepository implements CandidateRepository {
     return data;
   }
 
-  async update(id: number, patch: Partial<Candidate>): Promise<Candidate> {
+  async update(id: number, patch: UpdateCandidateData): Promise<Candidate> {
     const { data, error } = await supabase
       .from('candidates')
       .update(patch)
@@ -111,7 +125,7 @@ export class SupabaseCandidateRepository implements CandidateRepository {
     return data;
   }
 
-  async updateByEmail(email: string, patch: Partial<Candidate>): Promise<number[]> {
+  async updateByEmail(email: string, patch: UpdateCandidateData): Promise<number[]> {
     const { data, error } = await supabase
       .from('candidates')
       .update(patch)
