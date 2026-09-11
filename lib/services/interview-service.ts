@@ -1,17 +1,19 @@
-import { supabase } from '@/lib/supabase/client';
 import { Interview } from '@/lib/types';
+import { InterviewRepository } from '@/lib/repositories/interview-repository';
+import { SupabaseInterviewRepository } from '@/lib/repositories/supabase-interview-repository';
+import { CandidateRepository } from '@/lib/repositories/candidate-repository';
+import { SupabaseCandidateRepository } from '@/lib/repositories/supabase-candidate-repository';
 import { logTimelineEvent } from '@/lib/services/timeline-service';
 import { createCalendarEvent, deleteCalendarEvent } from '@/lib/services/calendar-service';
 import { sendCandidateEmail } from '@/lib/services/email-service';
 
-export async function getInterviews(): Promise<Interview[]> {
-  const { data, error } = await supabase
-    .from('interviews')
-    .select('*, candidates(full_name, email)')
-    .order('scheduled_date', { ascending: true });
+const defaultInterviewRepository: InterviewRepository = new SupabaseInterviewRepository();
+const defaultCandidateRepository: CandidateRepository = new SupabaseCandidateRepository();
 
-  if (error) throw new Error(error.message);
-  return data ?? [];
+export async function getInterviews(
+  repo: InterviewRepository = defaultInterviewRepository
+): Promise<Interview[]> {
+  return repo.findAll();
 }
 
 export interface CreateInterviewInput {
@@ -21,14 +23,15 @@ export interface CreateInterviewInput {
   duration_minutes: number;
 }
 
-export async function createInterview(input: CreateInterviewInput): Promise<Interview> {
-  const { data: candidate, error: candidateError } = await supabase
-    .from('candidates')
-    .select('id, full_name, email')
-    .eq('id', input.candidate_id)
-    .single();
-
-  if (candidateError || !candidate) throw new Error('Candidate not found.');
+export async function createInterview(
+  input: CreateInterviewInput,
+  repo: InterviewRepository = defaultInterviewRepository,
+  candidateRepo: CandidateRepository = defaultCandidateRepository
+): Promise<Interview> {
+  const candidate = await candidateRepo.findById(input.candidate_id);
+  if (!candidate) {
+    throw new Error('Candidate not found.');
+  }
 
   const { calendarEventId, meetLink } = await createCalendarEvent({
     candidateName: candidate.full_name,
@@ -37,15 +40,13 @@ export async function createInterview(input: CreateInterviewInput): Promise<Inte
     durationMinutes: input.duration_minutes,
   });
 
-  const { data, error } = await supabase
-    .from('interviews')
-    .insert({ ...input, calendar_event_id: calendarEventId, meet_link: meetLink })
-    .select('*, candidates(full_name, email)')
-    .single();
+  const interview = await repo.create({
+    ...input,
+    calendar_event_id: calendarEventId,
+    meet_link: meetLink,
+  });
 
-  if (error) throw new Error(error.message);
-
-  await supabase.from('candidates').update({ status: 'Interview Scheduled' }).eq('id', input.candidate_id);
+  await candidateRepo.updateStatus(input.candidate_id, 'Interview Scheduled');
   await logTimelineEvent(
     input.candidate_id,
     'interview_scheduled',
@@ -57,30 +58,25 @@ export async function createInterview(input: CreateInterviewInput): Promise<Inte
     meetLink: meetLink ?? undefined,
   });
 
-  return data;
+  return interview;
 }
 
 export async function updateInterviewStatus(
   id: number,
-  status: 'completed' | 'cancelled'
+  status: 'completed' | 'cancelled',
+  repo: InterviewRepository = defaultInterviewRepository,
+  candidateRepo: CandidateRepository = defaultCandidateRepository
 ): Promise<Interview> {
-  const { data, error } = await supabase
-    .from('interviews')
-    .update({ status })
-    .eq('id', id)
-    .select('*, candidates(full_name, email)')
-    .single();
-
-  if (error) throw new Error(error.message);
+  const interview = await repo.updateStatus(id, status);
 
   if (status === 'completed') {
-    await supabase.from('candidates').update({ status: 'Interview Completed' }).eq('id', data.candidate_id);
-    await logTimelineEvent(data.candidate_id, 'interview_completed');
+    await candidateRepo.updateStatus(interview.candidate_id, 'Interview Completed');
+    await logTimelineEvent(interview.candidate_id, 'interview_completed');
   }
 
-  if (status === 'cancelled' && data.calendar_event_id) {
-    await deleteCalendarEvent(data.calendar_event_id);
+  if (status === 'cancelled' && interview.calendar_event_id) {
+    await deleteCalendarEvent(interview.calendar_event_id);
   }
 
-  return data;
+  return interview;
 }

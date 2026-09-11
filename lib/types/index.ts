@@ -123,6 +123,8 @@ export const PIPELINE_STAGES = [
 
 export type PipelineStage = (typeof PIPELINE_STAGES)[number];
 
+export type InterviewStatus = 'scheduled' | 'completed' | 'cancelled';
+
 export interface Interview {
   id: number;
   created_at: string;
@@ -130,7 +132,7 @@ export interface Interview {
   interviewer_name: string;
   scheduled_date: string;
   duration_minutes: number;
-  status: 'scheduled' | 'completed' | 'cancelled';
+  status: InterviewStatus;
   calendar_event_id: string | null;
   meet_link: string | null;
   candidates?: { full_name: string; email: string } | null;
