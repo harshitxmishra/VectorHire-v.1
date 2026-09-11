@@ -1,9 +1,11 @@
 'use client';
 
 import { MainLayout } from '@/components/layout/main-layout';
-import { Title2, MessageBar, MessageBarBody } from '@fluentui/react-components';
-import { makeStyles, tokens } from '@fluentui/react-components';
+import { Title2, MessageBar, MessageBarBody, makeStyles, tokens } from '@fluentui/react-components';
 import { ChartContainer } from '@/components/ui/chart-container';
+import { HiringFunnelChart } from '@/components/analytics/HiringFunnelChart';
+import { ScoreDistributionChart } from '@/components/analytics/ScoreDistributionChart';
+import { CollegeYieldChart } from '@/components/analytics/CollegeYieldChart';
 import { useAppData } from '@/lib/hooks/use-app-data';
 
 const useStyles = makeStyles({
@@ -15,34 +17,54 @@ const useStyles = makeStyles({
   header: {
     marginBottom: tokens.spacingVerticalM,
   },
-  grid: {
+  kpiGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-    gap: tokens.spacingVerticalXL,
+    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+    gap: tokens.spacingHorizontalM,
   },
-  statRow: {
+  kpiCard: {
     display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: tokens.spacingVerticalM,
-    paddingBottom: tokens.spacingVerticalM,
-    paddingLeft: tokens.spacingHorizontalM,
-    paddingRight: tokens.spacingHorizontalM,
-    backgroundColor: tokens.colorNeutralBackground2,
-    borderRadius: tokens.borderRadiusSmall,
+    flexDirection: 'column',
+    gap: '4px',
+    padding: tokens.spacingVerticalL,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    backdropFilter: 'blur(16px)',
+    borderRadius: tokens.borderRadiusLarge,
+    border: '1px solid rgba(148, 163, 184, 0.12)',
+  },
+  kpiValue: {
+    fontSize: tokens.fontSizeBase600,
+    fontWeight: 800,
+    color: '#f8fafc',
+    letterSpacing: '-0.02em',
+  },
+  kpiLabel: {
+    fontSize: tokens.fontSizeBase200,
+    color: tokens.colorNeutralForeground3,
+    fontWeight: 600,
+  },
+  chartsGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: tokens.spacingVerticalXL,
+    '@media (max-width: 1000px)': {
+      gridTemplateColumns: '1fr',
+    },
   },
 });
 
 export default function AnalyticsPage() {
   const styles = useStyles();
-  const { candidates, collegeGroups, loading, error } = useAppData();
+  const { candidates, collegeGroups, scoreBuckets, loading, error } = useAppData();
+
+  const hiredCount = candidates.filter((c) => c.status?.toLowerCase() === 'hired').length;
+  const shortlistedCount = candidates.filter((c) => c.status?.toLowerCase() === 'shortlisted').length;
+  const interviewCount = candidates.filter(
+    (c) => c.status?.toLowerCase() === 'interview scheduled' || c.status?.toLowerCase() === 'interview eligible'
+  ).length;
 
   const conversionRate = candidates.length
-    ? (
-        (candidates.filter((c) => c.status?.toLowerCase() === 'hired').length /
-          candidates.length) *
-        100
-      ).toFixed(1)
+    ? ((hiredCount / candidates.length) * 100).toFixed(1)
     : '0';
   const averageCGPA = candidates.length
     ? (candidates.reduce((sum, c) => sum + (c.cgpa ?? 0), 0) / candidates.length).toFixed(2)
@@ -51,18 +73,19 @@ export default function AnalyticsPage() {
     ? Math.round(candidates.reduce((sum, c) => sum + (c.ai_score ?? 0), 0) / candidates.length)
     : 0;
 
-  const stats = [
-    { label: 'Conversion Rate', value: `${conversionRate}%` },
-    { label: 'Total Candidates', value: `${candidates.length}` },
-    { label: 'Average CGPA', value: averageCGPA },
-    { label: 'Average AI Score', value: `${averageAIScore}%` },
+  const funnelStages = [
+    { stage: '1. Sourced & Applied', count: candidates.length },
+    { stage: '2. AI Screened (>70%)', count: candidates.filter((c) => (c.ai_score || 0) >= 70).length },
+    { stage: '3. Shortlisted', count: shortlistedCount },
+    { stage: '4. Interview Round', count: interviewCount },
+    { stage: '5. Final Hired', count: hiredCount },
   ];
 
   return (
     <MainLayout>
       <div className={styles.container}>
         <div className={styles.header}>
-          <Title2>Analytics & Reporting</Title2>
+          <Title2>Recruitment Intelligence & Analytics</Title2>
         </div>
 
         {error ? (
@@ -71,55 +94,59 @@ export default function AnalyticsPage() {
           </MessageBar>
         ) : null}
 
-        {loading ? (
-          <p>Loading analytics...</p>
-        ) : (
-        <div className={styles.grid}>
-          <ChartContainer title="Key Metrics" subtitle="Overall recruiting performance at a glance">
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM }}>
-              {stats.map((stat) => (
-                <div key={stat.label} className={styles.statRow}>
-                  <div style={{ fontWeight: 600, color: tokens.colorNeutralForeground1 }}>
-                    {stat.label}
-                  </div>
-                  <div style={{ fontSize: tokens.fontSizeBase500, fontWeight: 700, color: tokens.colorBrandBackground }}>
-                    {stat.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ChartContainer>
-
-          <ChartContainer title="College Performance" subtitle="Conversion rate by college">
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM }}>
-              {collegeGroups.length === 0 ? (
-                <p>No candidates yet.</p>
-              ) : (
-                collegeGroups.slice(0, 4).map((group) => {
-                  const groupConversionRate =
-                    group.totalCandidates > 0
-                      ? ((group.shortlistedCount / group.totalCandidates) * 100).toFixed(1)
-                      : '0';
-                  return (
-                    <div key={group.college} className={styles.statRow}>
-                      <div>
-                        <div style={{ fontWeight: 600, color: tokens.colorNeutralForeground1 }}>
-                          {group.college}
-                        </div>
-                        <div style={{ fontSize: tokens.fontSizeBase200, color: tokens.colorNeutralForeground3 }}>
-                          {group.totalCandidates} candidates
-                        </div>
-                      </div>
-                      <div style={{ fontSize: tokens.fontSizeBase400, fontWeight: 700, color: tokens.colorBrandBackground }}>
-                        {groupConversionRate}%
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </ChartContainer>
+        {/* Top KPI Cards */}
+        <div className={styles.kpiGrid}>
+          <div className={styles.kpiCard}>
+            <span className={styles.kpiLabel}>Total Candidate Pipeline</span>
+            <span className={styles.kpiValue}>{candidates.length}</span>
+          </div>
+          <div className={styles.kpiCard}>
+            <span className={styles.kpiLabel}>Average AI Match</span>
+            <span className={styles.kpiValue} style={{ color: '#818cf8' }}>
+              {averageAIScore}%
+            </span>
+          </div>
+          <div className={styles.kpiCard}>
+            <span className={styles.kpiLabel}>Average CGPA</span>
+            <span className={styles.kpiValue} style={{ color: '#38bdf8' }}>
+              {averageCGPA}
+            </span>
+          </div>
+          <div className={styles.kpiCard}>
+            <span className={styles.kpiLabel}>Hire Conversion Yield</span>
+            <span className={styles.kpiValue} style={{ color: '#4ade80' }}>
+              {conversionRate}%
+            </span>
+          </div>
         </div>
+
+        {loading ? (
+          <p>Loading analytics graphs...</p>
+        ) : (
+          <div className={styles.chartsGrid}>
+            <ChartContainer
+              title="Recruitment Funnel Velocity"
+              subtitle="Step-by-step conversion from application to final hire"
+            >
+              <HiringFunnelChart stages={funnelStages} />
+            </ChartContainer>
+
+            <ChartContainer
+              title="AI Score Distribution"
+              subtitle="Breakdown of candidates by AI match rating tier"
+            >
+              <ScoreDistributionChart scoreBuckets={scoreBuckets} />
+            </ChartContainer>
+
+            <div style={{ gridColumn: '1 / -1' }}>
+              <ChartContainer
+                title="Campus & Sourcing Pool Yield"
+                subtitle="Conversion rate and shortlist efficiency across target academic institutions"
+              >
+                <CollegeYieldChart collegeGroups={collegeGroups} />
+              </ChartContainer>
+            </div>
+          </div>
         )}
       </div>
     </MainLayout>

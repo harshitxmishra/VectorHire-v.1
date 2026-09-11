@@ -28,6 +28,8 @@ interface ResumeMatchResult {
   recommendation: string;
 }
 
+import { ResumeDropzone } from '@/components/candidates/ResumeDropzone';
+
 function ResumeMatcher() {
   const [file, setFile] = useState<File | null>(null);
   const [jobDescription, setJobDescription] = useState('');
@@ -37,7 +39,7 @@ function ResumeMatcher() {
 
   const analyze = async () => {
     if (!file || !jobDescription.trim()) {
-      setError('Upload a PDF and paste a job description.');
+      setError('Upload a PDF resume and paste a job description.');
       return;
     }
     setLoading(true);
@@ -60,17 +62,29 @@ function ResumeMatcher() {
   };
 
   return (
-    <ChartContainer title="Resume Matcher" subtitle="Upload any PDF resume and match it against a job description on the spot">
+    <ChartContainer title="Instant AI Resume Matcher" subtitle="Upload any candidate PDF resume and match against target role requirements">
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalM }}>
-        <input type="file" accept="application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+        <ResumeDropzone
+          selectedFile={file}
+          onFileSelect={(f) => setFile(f)}
+          loading={loading}
+        />
+
         <Textarea
-          placeholder="Paste job description here..."
+          placeholder="Paste job description requirements and desired skills here..."
           value={jobDescription}
           onChange={(_, data) => setJobDescription(data.value)}
           rows={4}
         />
-        <Button appearance="primary" disabled={loading} onClick={analyze} style={{ alignSelf: 'flex-start' }}>
-          {loading ? 'Analyzing...' : 'Analyze Match'}
+
+        <Button
+          appearance="primary"
+          disabled={loading || !file || !jobDescription.trim()}
+          onClick={analyze}
+          style={{ alignSelf: 'flex-start' }}
+          icon={<Sparkle16Regular />}
+        >
+          {loading ? 'Analyzing with AI Model...' : 'Analyze Match & Skill Overlap'}
         </Button>
 
         {error ? (
@@ -80,25 +94,83 @@ function ResumeMatcher() {
         ) : null}
 
         {result ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalS }}>
-            <Badge appearance="filled" color="brand" style={{ alignSelf: 'flex-start' }}>
-              {result.matchPercentage}% match
-            </Badge>
-            <div>
-              {result.matchedSkills.map((s) => (
-                <Tag key={s} appearance="filled" color="success" style={{ marginRight: 4 }}>
-                  {s}
-                </Tag>
-              ))}
-              {result.missingSkills.map((s) => (
-                <Tag key={s} appearance="filled" color="danger" style={{ marginRight: 4 }}>
-                  {s}
-                </Tag>
-              ))}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: tokens.spacingVerticalM,
+              padding: tokens.spacingVerticalL,
+              backgroundColor: 'rgba(30, 41, 59, 0.7)',
+              borderRadius: tokens.borderRadiusMedium,
+              border: '1px solid rgba(148, 163, 184, 0.15)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontWeight: 700, fontSize: tokens.fontSizeBase400, color: '#f8fafc' }}>
+                  Match Score:
+                </span>
+                <Badge
+                  appearance="filled"
+                  style={{
+                    backgroundColor: result.matchPercentage >= 80 ? '#22c55e' : result.matchPercentage >= 65 ? '#eab308' : '#ef4444',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    padding: '6px 12px',
+                  }}
+                >
+                  {result.matchPercentage}%
+                </Badge>
+              </div>
             </div>
-            <span>Experience: {result.experienceMatch}</span>
-            <span>Education: {result.educationMatch}</span>
-            <span>{result.recommendation}</span>
+
+            <div>
+              <div style={{ fontSize: tokens.fontSizeBase200, fontWeight: 600, marginBottom: '6px', color: '#94a3b8' }}>
+                Matched Skills:
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {result.matchedSkills.map((s) => (
+                  <Tag key={s} appearance="filled" style={{ backgroundColor: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.4)' }}>
+                    ✓ {s}
+                  </Tag>
+                ))}
+              </div>
+            </div>
+
+            {result.missingSkills.length > 0 && (
+              <div>
+                <div style={{ fontSize: tokens.fontSizeBase200, fontWeight: 600, marginBottom: '6px', color: '#94a3b8' }}>
+                  Missing / Skill Gaps:
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {result.missingSkills.map((s) => (
+                    <Tag key={s} appearance="filled" style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                      ✕ {s}
+                    </Tag>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacingHorizontalM, paddingTop: tokens.spacingVerticalS, borderTop: '1px solid rgba(148, 163, 184, 0.1)' }}>
+              <div>
+                <span style={{ fontSize: tokens.fontSizeBase200, color: '#94a3b8', display: 'block' }}>Experience Alignment:</span>
+                <span style={{ fontWeight: 600, color: '#f1f5f9' }}>{result.experienceMatch}</span>
+              </div>
+              <div>
+                <span style={{ fontSize: tokens.fontSizeBase200, color: '#94a3b8', display: 'block' }}>Education Match:</span>
+                <span style={{ fontWeight: 600, color: '#f1f5f9' }}>{result.educationMatch}</span>
+              </div>
+            </div>
+
+            <div style={{ padding: tokens.spacingVerticalM, backgroundColor: 'rgba(15, 23, 42, 0.8)', borderRadius: tokens.borderRadiusSmall, borderLeft: '3px solid #6366f1' }}>
+              <span style={{ fontSize: tokens.fontSizeBase200, color: '#818cf8', fontWeight: 600, display: 'block', marginBottom: '2px' }}>
+                AI Recommendation:
+              </span>
+              <span style={{ color: '#cbd5e1', fontSize: tokens.fontSizeBase300 }}>
+                {result.recommendation}
+              </span>
+            </div>
           </div>
         ) : null}
       </div>

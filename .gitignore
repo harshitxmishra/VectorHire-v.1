@@ -15,10 +15,13 @@ __v0_jsx-dev-runtime.ts
 
 # Dependencies
 node_modules/
+backend/node_modules/
 
-# Next.js
+# Next.js & Build Output
 .next/
 out/
+dist/
+backend/dist/
 
 # TypeScript
 *.tsbuildinfo

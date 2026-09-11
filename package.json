@@ -1,12 +1,16 @@
 {
-  "name": "fluent-starter",
+  "name": "vectorhire",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:backend": "npm --prefix backend run dev",
     "build": "next build",
+    "build:backend": "npm --prefix backend run build",
     "start": "next start",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:backend": "npm --prefix backend run test",
+    "test:all": "vitest run && npm --prefix backend run test"
   },
   "dependencies": {
     "@fluentui/react-components": "^9.74.1",

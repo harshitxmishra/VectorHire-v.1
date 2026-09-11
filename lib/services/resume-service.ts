@@ -1,6 +1,6 @@
-import { toDirectDownloadUrl } from '@/lib/utils/google-drive';
 import { supabase } from '@/lib/supabase/client';
 import { aiGenerateText } from '@/lib/ai/client';
+import { safeFetchResumeBuffer } from '@/lib/utils/ssrf-protection';
 
 export interface ResumeFetchResult {
   base64: string;
@@ -8,22 +8,7 @@ export interface ResumeFetchResult {
 }
 
 export async function fetchResumeFile(resumeUrl: string): Promise<ResumeFetchResult> {
-  const directUrl = toDirectDownloadUrl(resumeUrl);
-  const response = await fetch(directUrl, { redirect: 'follow' });
-
-  if (!response.ok) {
-    throw new Error(`Failed to download resume (HTTP ${response.status}).`);
-  }
-
-  const contentType = response.headers.get('content-type') ?? '';
-
-  if (contentType.includes('text/html')) {
-    throw new Error(
-      'Drive returned a webpage instead of a file. Make sure the resume link is shared as "Anyone with the link can view".'
-    );
-  }
-
-  const buffer = await response.arrayBuffer();
+  const { buffer, contentType } = await safeFetchResumeBuffer(resumeUrl);
   const base64 = Buffer.from(buffer).toString('base64');
 
   return {

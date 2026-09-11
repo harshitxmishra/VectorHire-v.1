@@ -1,17 +1,18 @@
 import { NextResponse } from 'next/server';
 import { fetchGitHubAnalysis } from '@/lib/services/github-service';
 import { friendlyAIErrorMessage } from '@/lib/ai/error';
+import { validateGitHubUrlInput } from '@/lib/validation/schemas';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const url = typeof body?.github === 'string' ? body.github.trim() : '';
+    const validation = validateGitHubUrlInput(body);
 
-    if (!url) {
-      return NextResponse.json({ error: 'github URL is required.' }, { status: 400 });
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error, field: validation.field }, { status: 400 });
     }
 
-    const analysis = await fetchGitHubAnalysis(url);
+    const analysis = await fetchGitHubAnalysis(validation.data);
     return NextResponse.json(analysis);
   } catch (error) {
     console.error('GitHub analysis failed:', error);

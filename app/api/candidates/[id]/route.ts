@@ -1,31 +1,31 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import {
+  updateCandidateStatus,
+  deleteCandidate,
+} from '@/lib/services/candidate-service';
 import { logTimelineEvent } from '@/lib/services/timeline-service';
+import { validateCandidateStatus } from '@/lib/validation/schemas';
+import { verifyServerAuth } from '@/lib/auth/server-auth';
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const candidateId = Number(id);
 
-  if (!Number.isFinite(candidateId)) {
-    return NextResponse.json({ error: 'Invalid candidate id.' }, { status: 400 });
+  if (!Number.isFinite(candidateId) || candidateId <= 0) {
+    return NextResponse.json({ error: 'Invalid candidate id. Must be a positive integer.' }, { status: 400 });
   }
 
   try {
     const body = await req.json();
-    if (typeof body?.status !== 'string') {
-      return NextResponse.json({ error: 'status is required.' }, { status: 400 });
+    const validation = validateCandidateStatus(body?.status);
+
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error, field: validation.field }, { status: 400 });
     }
 
-    const { data, error } = await supabase
-      .from('candidates')
-      .update({ status: body.status })
-      .eq('id', candidateId)
-      .select()
-      .single();
+    const data = await updateCandidateStatus(candidateId, validation.data);
 
-    if (error) throw new Error(error.message);
-
-    await logTimelineEvent(candidateId, 'status_changed', `Moved to ${body.status}`);
+    await logTimelineEvent(candidateId, 'status_changed', `Moved to ${validation.data}`);
 
     return NextResponse.json(data);
   } catch (err) {
@@ -34,19 +34,25 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
 }
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await verifyServerAuth(req);
+  if (!auth.authorized) {
+    return auth.response ?? NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+  }
+
   const { id } = await params;
   const candidateId = Number(id);
 
-  if (!Number.isFinite(candidateId)) {
-    return NextResponse.json({ error: 'Invalid candidate id.' }, { status: 400 });
+  if (!Number.isFinite(candidateId) || candidateId <= 0) {
+    return NextResponse.json({ error: 'Invalid candidate id. Must be a positive integer.' }, { status: 400 });
   }
 
-  const { error } = await supabase.from('candidates').delete().eq('id', candidateId);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  try {
+    await deleteCandidate(candidateId);
+    return NextResponse.json({ success: true, message: `Candidate ${candidateId} deleted.` });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to delete candidate.';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  return NextResponse.json({ success: true });
 }
+

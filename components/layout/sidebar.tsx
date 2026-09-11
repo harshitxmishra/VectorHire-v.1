@@ -137,9 +137,12 @@ const settingsItems: NavItemConfig[] = [
   { label: 'Settings', href: '/settings', icon: <Settings24Regular /> },
 ];
 
+import { useAuth } from '@/lib/context/auth-context';
+
 export function Sidebar() {
   const styles = useStyles();
   const pathname = usePathname();
+  const { workspaceName } = useAuth();
 
   return (
     <aside className={styles.root}>
@@ -148,14 +151,14 @@ export function Sidebar() {
           <Link href="/dashboard" className={styles.logoBrand}>
             VectorHire
           </Link>
-          <Caption1>OS</Caption1>
+          <Caption1 style={{ color: '#818cf8', fontWeight: 600 }}>v1.0</Caption1>
         </div>
 
         <div className={styles.workspaceCard}>
-          <Avatar initials="VH" color="brand" size={40} />
+          <Avatar initials={workspaceName ? workspaceName.slice(0, 2).toUpperCase() : 'VH'} color="brand" size={40} />
           <div className={styles.workspaceText}>
-            <Body1Strong>Enterprise Recruiting</Body1Strong>
-            <Caption1>Live hiring workspace</Caption1>
+            <Body1Strong style={{ fontSize: '13px' }}>{workspaceName || 'Recruiting Workspace'}</Body1Strong>
+            <Caption1 style={{ color: tokens.colorNeutralForeground3 }}>Active Talent Node</Caption1>
           </div>
         </div>
       </div>
