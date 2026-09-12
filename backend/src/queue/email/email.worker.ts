@@ -1,47 +1,60 @@
-import { Injectable, Logger, OnModuleInit, OnApplicationShutdown } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnApplicationShutdown,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { Worker, Job } from 'bullmq';
 import { QUEUE_NAMES } from '../queue.constants';
-import { DemonstratorJobData, DemonstratorJobResult } from './demonstrator.types';
+import { EmailJobData, EmailJobResult } from './email.types';
 import { createRedisClient } from '../redis.config';
 import { Redis } from 'ioredis';
+import { EmailService } from '../../email/email.service';
 import { StructuredLogger } from '../../common/logging/structured-logger.service';
 
 @Injectable()
-export class DemonstratorWorker implements OnModuleInit, OnApplicationShutdown {
-  private readonly logger = new Logger(DemonstratorWorker.name);
-  private readonly structuredLogger = new StructuredLogger(DemonstratorWorker.name);
-  private worker?: Worker<DemonstratorJobData, DemonstratorJobResult>;
+export class EmailWorker implements OnModuleInit, OnApplicationShutdown {
+  private readonly logger = new Logger(EmailWorker.name);
+  private readonly structuredLogger = new StructuredLogger(EmailWorker.name);
+  private worker?: Worker<EmailJobData, EmailJobResult>;
   private redisClient?: Redis;
+
+  constructor(
+    @Inject(forwardRef(() => EmailService))
+    private readonly emailService: EmailService
+  ) {}
 
   onModuleInit() {
     this.redisClient = createRedisClient();
 
-    this.worker = new Worker<DemonstratorJobData, DemonstratorJobResult>(
-      QUEUE_NAMES.DEMONSTRATOR,
-      async (job: Job<DemonstratorJobData, DemonstratorJobResult>) => {
+    this.worker = new Worker<EmailJobData, EmailJobResult>(
+      QUEUE_NAMES.EMAIL_PROCESSING,
+      async (job: Job<EmailJobData, EmailJobResult>) => {
         return this.processJob(job);
       },
       {
         connection: this.redisClient,
-        concurrency: 5,
+        concurrency: 2,
       }
     );
 
     this.worker.on('error', (err: Error) => {
-      this.logger.warn(`Demonstrator worker error: ${err.message}`);
+      this.logger.warn(`Email worker connection error: ${err.message}`);
     });
+
+    this.logger.log(`Initialized worker: ${QUEUE_NAMES.EMAIL_PROCESSING} (concurrency: 2)`);
   }
 
-  async processJob(
-    job: Job<DemonstratorJobData, DemonstratorJobResult>
-  ): Promise<DemonstratorJobResult> {
+  async processJob(job: Job<EmailJobData, EmailJobResult>): Promise<EmailJobResult> {
     const startTime = Date.now();
-    const { message, correlationId, shouldFail } = job.data;
+    const { candidateIds, correlationId } = job.data;
     const attempt = (job.attemptsMade ?? 0) + 1;
     const maxAttempts = job.opts?.attempts ?? 3;
 
     this.structuredLogger.logJobStarted({
-      queue: QUEUE_NAMES.DEMONSTRATOR,
+      queue: QUEUE_NAMES.EMAIL_PROCESSING,
       jobId: job.id,
       jobName: job.name,
       correlationId,
@@ -50,13 +63,11 @@ export class DemonstratorWorker implements OnModuleInit, OnApplicationShutdown {
     });
 
     try {
-      if (shouldFail) {
-        throw new Error(`Demonstrator intentional failure for correlationId: ${correlationId}`);
-      }
-
+      const response = await this.emailService.sendEmails(job.data);
       const durationMs = Date.now() - startTime;
+
       this.structuredLogger.logJobCompleted({
-        queue: QUEUE_NAMES.DEMONSTRATOR,
+        queue: QUEUE_NAMES.EMAIL_PROCESSING,
         jobId: job.id,
         jobName: job.name,
         correlationId,
@@ -66,15 +77,18 @@ export class DemonstratorWorker implements OnModuleInit, OnApplicationShutdown {
       });
 
       return {
-        processed: true,
-        receivedMessage: message,
+        sent: response.sent,
+        failed: response.failed,
+        skipped: response.skipped,
+        total: candidateIds.length,
+        results: response.results,
         correlationId,
         processedAt: new Date().toISOString(),
       };
     } catch (err) {
       const durationMs = Date.now() - startTime;
       this.structuredLogger.logJobFailed({
-        queue: QUEUE_NAMES.DEMONSTRATOR,
+        queue: QUEUE_NAMES.EMAIL_PROCESSING,
         jobId: job.id,
         jobName: job.name,
         correlationId,
@@ -88,7 +102,7 @@ export class DemonstratorWorker implements OnModuleInit, OnApplicationShutdown {
   }
 
   async onApplicationShutdown() {
-    this.logger.log('Shutting down DemonstratorWorker...');
+    this.logger.log('Shutting down EmailWorker...');
     if (this.worker) {
       await this.worker.close();
     }
@@ -97,8 +111,8 @@ export class DemonstratorWorker implements OnModuleInit, OnApplicationShutdown {
     }
   }
 
-  // Exposed for testing worker handler directly
-  getWorkerInstance(): Worker<DemonstratorJobData, DemonstratorJobResult> | undefined {
+  // Exposed for unit testing inspection
+  getWorkerInstance(): Worker<EmailJobData, EmailJobResult> | undefined {
     return this.worker;
   }
 }

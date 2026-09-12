@@ -270,7 +270,40 @@ export default function CandidatesPage() {
         throw new Error(result.error ?? 'AI evaluation failed.');
       }
 
-      setEvaluations((prev) => ({ ...prev, [candidate.id]: result }));
+      let evaluationData = result;
+
+      // Handle asynchronous queue response
+      if (result.status === 'completed' && result.result) {
+        evaluationData = result.result;
+      } else if (result.status === 'queued' && result.jobId) {
+        let attempts = 0;
+        const maxAttempts = 60;
+        let completed = false;
+
+        while (attempts < maxAttempts && !completed) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          attempts++;
+
+          const pollRes = await fetch(`/api/v1/ai/jobs/${result.jobId}`);
+          if (!pollRes.ok) {
+            continue;
+          }
+          const pollData = await pollRes.json();
+
+          if (pollData.state === 'completed') {
+            evaluationData = pollData.result;
+            completed = true;
+          } else if (pollData.state === 'failed') {
+            throw new Error(pollData.error || 'AI evaluation failed.');
+          }
+        }
+
+        if (!completed) {
+          throw new Error('AI evaluation timed out. Please try again.');
+        }
+      }
+
+      setEvaluations((prev) => ({ ...prev, [candidate.id]: evaluationData }));
       setEvaluationStatus((prev) => ({ ...prev, [candidate.id]: 'evaluated' }));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'AI evaluation failed.';
@@ -332,7 +365,38 @@ export default function CandidatesPage() {
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error ?? 'GitHub analysis failed.');
-        setGithubIntel((prev) => ({ ...prev, [candidate.id]: result }));
+
+        let githubData = result;
+
+        if (result.status === 'completed' && result.result) {
+          githubData = result.result;
+        } else if (result.status === 'queued' && result.jobId) {
+          let attempts = 0;
+          const maxAttempts = 60;
+          let completed = false;
+
+          while (attempts < maxAttempts && !completed) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            attempts++;
+
+            const pollRes = await fetch(`/api/v1/ai/github/jobs/${result.jobId}`);
+            if (!pollRes.ok) continue;
+            const pollData = await pollRes.json();
+
+            if (pollData.state === 'completed') {
+              githubData = pollData.result;
+              completed = true;
+            } else if (pollData.state === 'failed') {
+              throw new Error(pollData.error || 'GitHub analysis failed.');
+            }
+          }
+
+          if (!completed) {
+            throw new Error('GitHub analysis timed out. Please try again.');
+          }
+        }
+
+        setGithubIntel((prev) => ({ ...prev, [candidate.id]: githubData }));
       } catch (err) {
         const message = err instanceof Error ? err.message : 'GitHub analysis failed.';
         notify(message, 'error');
@@ -351,7 +415,30 @@ export default function CandidatesPage() {
 
     try {
       const res = await fetch(`/api/v1/candidates/${candidate.id}/parse-resume`, { method: 'POST' });
-      await res.json();
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error ?? 'Resume parsing failed.');
+
+      if (result.status === 'queued' && result.jobId) {
+        let attempts = 0;
+        const maxAttempts = 60;
+        let completed = false;
+
+        while (attempts < maxAttempts && !completed) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          attempts++;
+
+          const pollRes = await fetch(`/api/v1/candidates/jobs/${result.jobId}`);
+          if (!pollRes.ok) continue;
+          const pollData = await pollRes.json();
+
+          if (pollData.state === 'completed') {
+            completed = true;
+          } else if (pollData.state === 'failed') {
+            throw new Error(pollData.error || 'Resume parsing failed.');
+          }
+        }
+      }
+
       await loadCandidates();
     } catch (err) {
       console.error(err);
@@ -416,7 +503,44 @@ export default function CandidatesPage() {
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? 'Failed to send emails.');
-      notify(`Sent ${body.sent}, failed ${body.failed}.`, body.failed > 0 ? 'error' : 'success');
+
+      if (body.status === 'queued' && body.jobId) {
+        let attempts = 0;
+        const maxAttempts = 60;
+        let completed = false;
+
+        while (attempts < maxAttempts && !completed) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          attempts++;
+
+          try {
+            const statusRes = await fetch(`/api/v1/emails/jobs/${body.jobId}`);
+            if (statusRes.ok) {
+              const statusBody = await statusRes.json();
+              if (statusBody.state === 'completed') {
+                completed = true;
+                const result = statusBody.result;
+                notify(
+                  `Sent ${result?.sent ?? 0}, failed ${result?.failed ?? 0}, skipped ${result?.skipped ?? 0}.`,
+                  (result?.failed ?? 0) > 0 ? 'error' : 'success'
+                );
+              } else if (statusBody.state === 'failed') {
+                completed = true;
+                notify(statusBody.error || 'Failed to send emails.', 'error');
+              }
+            }
+          } catch {
+            // continue polling until max attempts
+          }
+        }
+
+        if (!completed) {
+          notify('Bulk email sending is taking longer than expected. Please check back shortly.', 'info');
+        }
+      } else {
+        notify(`Sent ${body.sent}, failed ${body.failed}.`, body.failed > 0 ? 'error' : 'success');
+      }
+
       await loadCandidates();
       setSelectedIds(new Set());
     } catch (err) {

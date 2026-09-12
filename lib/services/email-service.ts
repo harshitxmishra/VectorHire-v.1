@@ -69,13 +69,52 @@ function buildTemplate(
   }
 }
 
+export interface EmailPayload {
+  to: string;
+  subject: string;
+  html: string;
+}
+
+export interface EmailSendResult {
+  messageId?: string;
+  success: boolean;
+  error?: string;
+}
+
+export interface EmailProvider {
+  sendEmail(payload: EmailPayload): Promise<EmailSendResult>;
+}
+
+export class NodemailerEmailProvider implements EmailProvider {
+  async sendEmail(payload: EmailPayload): Promise<EmailSendResult> {
+    const transporter = getTransporter();
+    const deliverTo = process.env.DEMO_EMAIL_OVERRIDE || payload.to;
+    const subjectPrefix = process.env.DEMO_EMAIL_OVERRIDE ? `[Demo — intended for ${payload.to}] ` : '';
+
+    const info = await transporter.sendMail({
+      from: process.env.GMAIL_USER,
+      to: deliverTo,
+      subject: `${subjectPrefix}${payload.subject}`,
+      html: payload.html,
+    });
+
+    return {
+      messageId: info?.messageId,
+      success: true,
+    };
+  }
+}
+
+const defaultEmailProvider = new NodemailerEmailProvider();
+
 export async function sendCandidateEmail(
   candidateId: number,
   type: EmailType,
   recipient: string,
   candidateName: string,
   extra?: EmailExtra,
-  repo: EmailLogRepository = defaultEmailLogRepository
+  repo: EmailLogRepository = defaultEmailLogRepository,
+  provider: EmailProvider = defaultEmailProvider
 ): Promise<{ status: 'sent' | 'failed'; error?: string }> {
   let logId: number | null = null;
   try {
@@ -91,22 +130,17 @@ export async function sendCandidateEmail(
   }
 
   try {
-    const transporter = getTransporter();
     const { subject, html } = buildTemplate(type, candidateName, extra);
 
-    // Demo mode: deliver to a single inbox instead of the candidate's real
-    // address, while email_logs.recipient still records the intended
-    // recipient for accurate tracking. Set DEMO_EMAIL_OVERRIDE in .env.local;
-    // remove it to send to real candidate addresses again.
-    const deliverTo = process.env.DEMO_EMAIL_OVERRIDE || recipient;
-    const subjectPrefix = process.env.DEMO_EMAIL_OVERRIDE ? `[Demo — intended for ${recipient}] ` : '';
-
-    await transporter.sendMail({
-      from: process.env.GMAIL_USER,
-      to: deliverTo,
-      subject: `${subjectPrefix}${subject}`,
+    const result = await provider.sendEmail({
+      to: recipient,
+      subject,
       html,
     });
+
+    if (!result.success) {
+      throw new Error(result.error ?? 'Failed to send email via provider.');
+    }
 
     if (logId !== null) {
       await repo.markAsSent(logId);

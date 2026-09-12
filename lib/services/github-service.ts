@@ -142,7 +142,7 @@ Give a short summary (2-3 sentences), a concise portfolioVerdict (e.g. "Strong F
   };
 }
 
-export async function getOrAnalyzeGitHub(candidateId: number): Promise<GitHubIntelligence> {
+export async function getOrAnalyzeGitHub(candidateId: number, force = false): Promise<GitHubIntelligence> {
   const { data: candidate, error } = await supabase
     .from('candidates')
     .select(
@@ -167,7 +167,7 @@ export async function getOrAnalyzeGitHub(candidateId: number): Promise<GitHubInt
     candidate.github_last_analyzed &&
     Date.now() - new Date(candidate.github_last_analyzed).getTime() < CACHE_TTL_MS;
 
-  if (isFresh && candidate.github_score !== null) {
+  if (!force && isFresh && candidate.github_score !== null) {
     return {
       score: candidate.github_score,
       summary: candidate.github_summary ?? '',

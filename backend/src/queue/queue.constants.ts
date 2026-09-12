@@ -1,9 +1,19 @@
 export const QUEUE_NAMES = {
   DEMONSTRATOR: 'demonstrator-queue',
+  AI_EVALUATION: 'ai-evaluation-queue',
+  RESUME_PROCESSING: 'resume-processing-queue',
+  GITHUB_PROCESSING: 'github-processing-queue',
+  DATASET_PROCESSING: 'dataset-processing-queue',
+  EMAIL_PROCESSING: 'email-processing-queue',
 } as const;
 
 export const JOB_NAMES = {
   DEMONSTRATOR_PING: 'demonstrator:ping',
+  AI_EVALUATE: 'ai:evaluate',
+  RESUME_PARSE: 'resume:parse',
+  GITHUB_ANALYZE: 'github:analyze',
+  DATASET_IMPORT: 'dataset:import',
+  EMAIL_SEND: 'email:send',
 } as const;
 
 export const DEFAULT_JOB_OPTIONS = {

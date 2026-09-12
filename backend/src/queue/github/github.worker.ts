@@ -1,24 +1,37 @@
-import { Injectable, Logger, OnModuleInit, OnApplicationShutdown } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnApplicationShutdown,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { Worker, Job } from 'bullmq';
 import { QUEUE_NAMES } from '../queue.constants';
-import { DemonstratorJobData, DemonstratorJobResult } from './demonstrator.types';
+import { GithubJobData, GithubJobResult } from './github.types';
 import { createRedisClient } from '../redis.config';
 import { Redis } from 'ioredis';
+import { GithubService } from '../../github/github.service';
 import { StructuredLogger } from '../../common/logging/structured-logger.service';
 
 @Injectable()
-export class DemonstratorWorker implements OnModuleInit, OnApplicationShutdown {
-  private readonly logger = new Logger(DemonstratorWorker.name);
-  private readonly structuredLogger = new StructuredLogger(DemonstratorWorker.name);
-  private worker?: Worker<DemonstratorJobData, DemonstratorJobResult>;
+export class GithubWorker implements OnModuleInit, OnApplicationShutdown {
+  private readonly logger = new Logger(GithubWorker.name);
+  private readonly structuredLogger = new StructuredLogger(GithubWorker.name);
+  private worker?: Worker<GithubJobData, GithubJobResult>;
   private redisClient?: Redis;
+
+  constructor(
+    @Inject(forwardRef(() => GithubService))
+    private readonly githubService: GithubService
+  ) {}
 
   onModuleInit() {
     this.redisClient = createRedisClient();
 
-    this.worker = new Worker<DemonstratorJobData, DemonstratorJobResult>(
-      QUEUE_NAMES.DEMONSTRATOR,
-      async (job: Job<DemonstratorJobData, DemonstratorJobResult>) => {
+    this.worker = new Worker<GithubJobData, GithubJobResult>(
+      QUEUE_NAMES.GITHUB_PROCESSING,
+      async (job: Job<GithubJobData, GithubJobResult>) => {
         return this.processJob(job);
       },
       {
@@ -28,20 +41,20 @@ export class DemonstratorWorker implements OnModuleInit, OnApplicationShutdown {
     );
 
     this.worker.on('error', (err: Error) => {
-      this.logger.warn(`Demonstrator worker error: ${err.message}`);
+      this.logger.warn(`GitHub worker connection error: ${err.message}`);
     });
+
+    this.logger.log(`Initialized worker: ${QUEUE_NAMES.GITHUB_PROCESSING} (concurrency: 5)`);
   }
 
-  async processJob(
-    job: Job<DemonstratorJobData, DemonstratorJobResult>
-  ): Promise<DemonstratorJobResult> {
+  async processJob(job: Job<GithubJobData, GithubJobResult>): Promise<GithubJobResult> {
     const startTime = Date.now();
-    const { message, correlationId, shouldFail } = job.data;
+    const { candidateId, force, correlationId } = job.data;
     const attempt = (job.attemptsMade ?? 0) + 1;
     const maxAttempts = job.opts?.attempts ?? 3;
 
     this.structuredLogger.logJobStarted({
-      queue: QUEUE_NAMES.DEMONSTRATOR,
+      queue: QUEUE_NAMES.GITHUB_PROCESSING,
       jobId: job.id,
       jobName: job.name,
       correlationId,
@@ -50,13 +63,11 @@ export class DemonstratorWorker implements OnModuleInit, OnApplicationShutdown {
     });
 
     try {
-      if (shouldFail) {
-        throw new Error(`Demonstrator intentional failure for correlationId: ${correlationId}`);
-      }
-
+      const intel = await this.githubService.analyzeCandidate(candidateId, force);
       const durationMs = Date.now() - startTime;
+
       this.structuredLogger.logJobCompleted({
-        queue: QUEUE_NAMES.DEMONSTRATOR,
+        queue: QUEUE_NAMES.GITHUB_PROCESSING,
         jobId: job.id,
         jobName: job.name,
         correlationId,
@@ -66,15 +77,15 @@ export class DemonstratorWorker implements OnModuleInit, OnApplicationShutdown {
       });
 
       return {
-        processed: true,
-        receivedMessage: message,
+        ...intel,
+        candidateId,
         correlationId,
         processedAt: new Date().toISOString(),
       };
     } catch (err) {
       const durationMs = Date.now() - startTime;
       this.structuredLogger.logJobFailed({
-        queue: QUEUE_NAMES.DEMONSTRATOR,
+        queue: QUEUE_NAMES.GITHUB_PROCESSING,
         jobId: job.id,
         jobName: job.name,
         correlationId,
@@ -88,7 +99,7 @@ export class DemonstratorWorker implements OnModuleInit, OnApplicationShutdown {
   }
 
   async onApplicationShutdown() {
-    this.logger.log('Shutting down DemonstratorWorker...');
+    this.logger.log('Shutting down GithubWorker...');
     if (this.worker) {
       await this.worker.close();
     }
@@ -97,8 +108,8 @@ export class DemonstratorWorker implements OnModuleInit, OnApplicationShutdown {
     }
   }
 
-  // Exposed for testing worker handler directly
-  getWorkerInstance(): Worker<DemonstratorJobData, DemonstratorJobResult> | undefined {
+  // Exposed for testing
+  getWorkerInstance(): Worker<GithubJobData, GithubJobResult> | undefined {
     return this.worker;
   }
 }

@@ -299,7 +299,40 @@ export default function AIEvaluationPage() {
         throw new Error(result.error ?? 'AI evaluation failed.');
       }
 
-      setEvaluations((prev) => ({ ...prev, [candidate.id]: result }));
+      let evaluationData = result;
+
+      // Handle asynchronous queue response
+      if (result.status === 'completed' && result.result) {
+        evaluationData = result.result;
+      } else if (result.status === 'queued' && result.jobId) {
+        let attempts = 0;
+        const maxAttempts = 60;
+        let completed = false;
+
+        while (attempts < maxAttempts && !completed) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          attempts++;
+
+          const pollRes = await fetch(`/api/v1/ai/jobs/${result.jobId}`);
+          if (!pollRes.ok) {
+            continue;
+          }
+          const pollData = await pollRes.json();
+
+          if (pollData.state === 'completed') {
+            evaluationData = pollData.result;
+            completed = true;
+          } else if (pollData.state === 'failed') {
+            throw new Error(pollData.error || 'AI evaluation failed.');
+          }
+        }
+
+        if (!completed) {
+          throw new Error('AI evaluation timed out. Please try again.');
+        }
+      }
+
+      setEvaluations((prev) => ({ ...prev, [candidate.id]: evaluationData }));
       setEvaluationStatus((prev) => ({ ...prev, [candidate.id]: 'evaluated' }));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'AI evaluation failed.';

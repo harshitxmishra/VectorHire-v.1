@@ -98,12 +98,50 @@ export default function AssessmentsPage() {
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? 'Failed to send assessment.');
 
-      if (body.skipped > 0) {
-        notify('Assessment was already sent to this candidate.', 'info');
-      } else if (body.sent > 0) {
-        notify('Assessment email sent.', 'success');
+      if (body.status === 'queued' && body.jobId) {
+        let attempts = 0;
+        const maxAttempts = 60;
+        let completed = false;
+
+        while (attempts < maxAttempts && !completed) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          attempts++;
+
+          try {
+            const statusRes = await fetch(`/api/v1/emails/jobs/${body.jobId}`);
+            if (statusRes.ok) {
+              const statusBody = await statusRes.json();
+              if (statusBody.state === 'completed') {
+                completed = true;
+                const result = statusBody.result;
+                if (result?.skipped > 0) {
+                  notify('Assessment was already sent to this candidate.', 'info');
+                } else if (result?.sent > 0) {
+                  notify('Assessment email sent.', 'success');
+                } else {
+                  notify('Assessment email failed to send.', 'error');
+                }
+              } else if (statusBody.state === 'failed') {
+                completed = true;
+                notify(statusBody.error || 'Failed to send assessment.', 'error');
+              }
+            }
+          } catch {
+            // continue polling until max attempts
+          }
+        }
+
+        if (!completed) {
+          notify('Email sending is taking longer than expected. Please check back shortly.', 'info');
+        }
       } else {
-        notify('Assessment email failed to send.', 'error');
+        if (body.skipped > 0) {
+          notify('Assessment was already sent to this candidate.', 'info');
+        } else if (body.sent > 0) {
+          notify('Assessment email sent.', 'success');
+        } else {
+          notify('Assessment email failed to send.', 'error');
+        }
       }
       await load();
     } catch (err) {
