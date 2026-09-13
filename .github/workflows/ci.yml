@@ -28,6 +28,7 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: "https://placeholder-project.supabase.co"
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder-anon-key"
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "placeholder-anon-key"
+      SUPABASE_URL: "https://placeholder-project.supabase.co"
       SUPABASE_SERVICE_ROLE_KEY: "placeholder-service-role-key"
       REDIS_URL: "redis://127.0.0.1:6379"
 
@@ -38,7 +39,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 11
+          version: 9
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
@@ -53,21 +54,21 @@ jobs:
         run: npm --prefix backend ci
 
       - name: Root TypeScript typecheck
-        run: npx tsc --noEmit
+        run: pnpm exec tsc --noEmit
 
       - name: Backend TypeScript typecheck & build
-        run: npm run build:backend
+        run: pnpm run build:backend
 
       - name: Run root unit tests (Vitest)
-        run: npm test
+        run: pnpm test
 
       - name: Run backend unit tests (Vitest)
-        run: npm run test:backend
+        run: pnpm run test:backend
 
       - name: Run integration tests (Vitest)
-        run: npm run test:integration
+        run: pnpm run test:integration
 
       - name: Build Next.js production bundle
-        run: npm run build
+        run: pnpm run build
         env:
           NODE_ENV: production
