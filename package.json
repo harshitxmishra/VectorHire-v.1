@@ -10,6 +10,7 @@
     "start": "next start",
     "test": "vitest run",
     "test:backend": "npm --prefix backend run test",
+    "test:integration": "npm --prefix backend run test:integration",
     "test:all": "vitest run && npm --prefix backend run test"
   },
   "dependencies": {
