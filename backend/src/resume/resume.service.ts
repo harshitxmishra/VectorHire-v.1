@@ -9,7 +9,7 @@ import { parseResumeForCandidate } from '@/lib/services/resume-service';
 
 @Injectable()
 export class ResumeService {
-  async parseResume(candidateId: number) {
+  async validateCandidateForParsing(candidateId: number) {
     const { data: candidate, error } = await supabase
       .from('candidates')
       .select('id, resume_url')
@@ -24,7 +24,13 @@ export class ResumeService {
       throw new BadRequestException('Candidate has no resume URL.');
     }
 
-    const result = await parseResumeForCandidate(candidate.id, candidate.resume_url);
+    return candidate;
+  }
+
+  async parseResume(candidateId: number) {
+    const candidate = await this.validateCandidateForParsing(candidateId);
+
+    const result = await parseResumeForCandidate(candidate.id, candidate.resume_url!);
 
     if (result.status === 'failed') {
       throw new BadGatewayException(result.error ?? 'Resume parsing failed.');

@@ -1,5 +1,8 @@
 'use client';
 
+import { Suspense, useCallback, useEffect, useState, useMemo } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { MainLayout } from '@/components/layout/main-layout';
 import {
   Badge,
@@ -18,18 +21,23 @@ import {
   Field,
   Body2,
   Caption1,
+  Spinner,
 } from '@fluentui/react-components';
 import {
   Sparkle16Regular,
   DatabaseRegular,
   ArrowSyncRegular,
   ArrowTrendingRegular,
-  MailRegular,
   SearchRegular,
   TableSimple24Regular,
   Board24Regular,
   Filter20Regular,
-  Code16Regular,
+  DismissRegular,
+  CheckmarkRegular,
+  ChevronLeftRegular,
+  ChevronRightRegular,
+  PersonRegular,
+  DocumentTextRegular,
 } from '@fluentui/react-icons';
 import { ChartContainer } from '@/components/ui/chart-container';
 import CandidateInsightsDrawer from '@/components/ai/CandidateInsightsDrawer';
@@ -37,7 +45,6 @@ import { DatasetManagerDialog } from '@/components/candidates/DatasetManagerDial
 import { ShortlistDialog } from '@/components/candidates/ShortlistDialog';
 import { CandidateKanban } from '@/components/candidates/CandidateKanban';
 import { useAppToast } from '@/lib/hooks/use-app-toast';
-import { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   Candidate,
   AIEvaluationResult,
@@ -46,6 +53,7 @@ import {
   GitHubIntelligence,
   PIPELINE_STAGES,
 } from '@/lib/types';
+import { CandidateSortField, CandidateSortOrder } from '@/lib/repositories/candidate-repository';
 
 const useStyles = makeStyles({
   container: {
@@ -85,6 +93,31 @@ const useStyles = makeStyles({
     flexWrap: 'wrap',
     flex: 1,
   },
+  bulkToolbar: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: tokens.spacingHorizontalM,
+    flexWrap: 'wrap',
+    paddingTop: tokens.spacingVerticalS,
+    paddingBottom: tokens.spacingVerticalS,
+    paddingLeft: tokens.spacingHorizontalL,
+    paddingRight: tokens.spacingHorizontalL,
+    backgroundColor: 'rgba(79, 70, 229, 0.15)',
+    borderRadius: tokens.borderRadiusMedium,
+    ...shorthands.border('1px', 'solid', 'rgba(99, 102, 241, 0.35)'),
+    animationName: {
+      from: { opacity: 0, transform: 'translateY(-4px)' },
+      to: { opacity: 1, transform: 'translateY(0)' },
+    },
+    animationDuration: '200ms',
+  },
+  bulkActionsGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalS,
+    flexWrap: 'wrap',
+  },
   candidateItem: {
     display: 'flex',
     alignItems: 'center',
@@ -111,10 +144,15 @@ const useStyles = makeStyles({
     gap: tokens.spacingVerticalXS,
     minWidth: '220px',
   },
-  candidateName: {
+  candidateNameLink: {
     fontWeight: 600,
     color: tokens.colorNeutralForeground1,
     fontSize: tokens.fontSizeBase300,
+    textDecoration: 'none',
+    ':hover': {
+      color: '#818cf8',
+      textDecoration: 'underline',
+    },
   },
   candidateDesc: {
     fontSize: tokens.fontSizeBase200,
@@ -142,30 +180,73 @@ const useStyles = makeStyles({
     textTransform: 'uppercase',
     letterSpacing: '0.04em',
   },
-  jdSelector: {
-    minWidth: '240px',
+  paginationContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: tokens.spacingHorizontalM,
+    flexWrap: 'wrap',
+    paddingTop: tokens.spacingVerticalM,
+    paddingBottom: tokens.spacingVerticalM,
+  },
+  paginationControls: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalS,
+  },
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: tokens.spacingVerticalXXL,
+    textAlign: 'center',
+    gap: tokens.spacingVerticalM,
+    backgroundColor: 'rgba(30, 41, 59, 0.4)',
+    borderRadius: tokens.borderRadiusLarge,
+    ...shorthands.border('1px', 'dashed', 'rgba(148, 163, 184, 0.2)'),
   },
 });
 
 type EvaluationStatus = 'not_evaluated' | 'evaluating' | 'evaluated' | 'error';
 type MatchStatus = 'not_matched' | 'matching' | 'matched' | 'error';
 
-export default function CandidatesPage() {
+function CandidatesContent() {
   const styles = useStyles();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const notify = useAppToast();
 
-  const [topCandidates, setTopCandidates] = useState<Candidate[]>([]);
+  // Read URL query parameters
+  const urlSearch = searchParams.get('search') ?? '';
+  const urlStatus = searchParams.get('status') ?? 'all';
+  const urlCollege = searchParams.get('college') ?? 'all';
+  const urlMinScore = Number(searchParams.get('minScore') ?? 0);
+  const urlSortBy = (searchParams.get('sortBy') as CandidateSortField) ?? 'ai_score';
+  const urlSortOrder = (searchParams.get('sortOrder') as CandidateSortOrder) ?? 'desc';
+  const urlPage = Math.max(1, Number(searchParams.get('page') ?? 1));
+  const urlLimit = Math.min(100, Math.max(10, Number(searchParams.get('limit') ?? 20)));
+
+  // Local state
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [totalPages, setTotalPages] = useState<number>(1);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [searchInput, setSearchInput] = useState(urlSearch);
   const [datasetManagerOpen, setDatasetManagerOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
 
-  // Filters
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCollege, setSelectedCollege] = useState<string>('all');
-  const [minScore, setMinScore] = useState(0);
+  // Multi-selection (visible page only)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState<string>('Shortlisted');
+  const [bulkUpdating, setBulkUpdating] = useState(false);
 
+  // AI evaluation & Matching drawer state
   const [evaluations, setEvaluations] = useState<Record<number, AIEvaluationResult>>({});
   const [evaluationStatus, setEvaluationStatus] = useState<Record<number, EvaluationStatus>>({});
-  const [evaluationError, setEvaluationError] = useState<string | null>(null);
   const [activeCandidate, setActiveCandidate] = useState<Candidate | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -173,38 +254,89 @@ export default function CandidatesPage() {
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   const [matches, setMatches] = useState<Record<number, JobMatchResult>>({});
   const [matchStatus, setMatchStatus] = useState<Record<number, MatchStatus>>({});
-  const [resumeParsing, setResumeParsing] = useState<Record<number, boolean>>({});
   const [githubIntel, setGithubIntel] = useState<Record<number, GitHubIntelligence>>({});
   const [githubLoading, setGithubLoading] = useState<Record<number, boolean>>({});
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [shortlistOpen, setShortlistOpen] = useState(false);
-  const [sendingEmail, setSendingEmail] = useState(false);
-  const notify = useAppToast();
 
-  const loadCandidates = useCallback(async () => {
-    try {
-      const res = await fetch('/api/candidates');
-      const data: Candidate[] = await res.json();
-      setTopCandidates(Array.isArray(data) ? data : []);
+  // Sync search input if URL changes externally
+  useEffect(() => {
+    setSearchInput(urlSearch);
+  }, [urlSearch]);
 
-      const seededEvaluations: Record<number, AIEvaluationResult> = {};
-      const seededStatus: Record<number, EvaluationStatus> = {};
-      if (Array.isArray(data)) {
-        data.forEach((candidate) => {
-          if (candidate.ai_evaluation) {
-            seededEvaluations[candidate.id] = candidate.ai_evaluation;
-            seededStatus[candidate.id] = 'evaluated';
-          }
-        });
+  // Update URL helper (automatically resets to page 1 on filter/search change)
+  const updateQueryParams = useCallback(
+    (updates: Record<string, string | number | undefined>, resetPage = false) => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === undefined || value === '' || value === 'all' || value === 0) {
+          params.delete(key);
+        } else {
+          params.set(key, String(value));
+        }
+      });
+
+      if (resetPage) {
+        params.delete('page');
       }
-      setEvaluations((prev) => ({ ...seededEvaluations, ...prev }));
-      setEvaluationStatus((prev) => ({ ...seededStatus, ...prev }));
+
+      router.push(`${pathname}?${params.toString()}`);
+    },
+    [router, pathname, searchParams]
+  );
+
+  // Debounced search handler
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== urlSearch) {
+        updateQueryParams({ search: searchInput.trim() }, true);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchInput, urlSearch, updateQueryParams]);
+
+  // Fetch paginated candidates
+  const loadCandidates = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (urlSearch) params.set('search', urlSearch);
+      if (urlStatus && urlStatus !== 'all') params.set('status', urlStatus);
+      if (urlCollege && urlCollege !== 'all') params.set('college', urlCollege);
+      if (urlMinScore > 0) params.set('minScore', String(urlMinScore));
+      if (urlSortBy) params.set('sortBy', urlSortBy);
+      if (urlSortOrder) params.set('sortOrder', urlSortOrder);
+      params.set('page', String(urlPage));
+      params.set('limit', String(urlLimit));
+
+      const res = await fetch(`/api/candidates?${params.toString()}`);
+      if (!res.ok) {
+        throw new Error(`Failed to load candidates (${res.status})`);
+      }
+
+      const body = await res.json();
+      if (body && Array.isArray(body.candidates)) {
+        setCandidates(body.candidates);
+        setTotalCount(body.total ?? body.candidates.length);
+        setTotalPages(body.totalPages ?? 1);
+      } else if (Array.isArray(body)) {
+        setCandidates(body);
+        setTotalCount(body.length);
+        setTotalPages(1);
+      } else {
+        setCandidates([]);
+        setTotalCount(0);
+        setTotalPages(1);
+      }
+      setSelectedIds(new Set());
     } catch (err) {
-      console.error(err);
+      const msg = err instanceof Error ? err.message : 'Error fetching candidates';
+      setError(msg);
+      notify(msg, 'error');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [urlSearch, urlStatus, urlCollege, urlMinScore, urlSortBy, urlSortOrder, urlPage, urlLimit, notify]);
 
   const loadJobDescriptions = useCallback(async () => {
     try {
@@ -218,165 +350,13 @@ export default function CandidatesPage() {
 
   useEffect(() => {
     loadCandidates();
-    loadJobDescriptions();
-  }, [loadCandidates, loadJobDescriptions]);
+  }, [loadCandidates]);
 
   useEffect(() => {
-    if (!selectedJobId) {
-      setMatches({});
-      setMatchStatus({});
-      return;
-    }
+    loadJobDescriptions();
+  }, [loadJobDescriptions]);
 
-    fetch(`/api/v1/matching?jobDescriptionId=${selectedJobId}`)
-      .then((res) => res.json())
-      .then((body) => {
-        const results: JobMatchResult[] = Array.isArray(body) ? body : [];
-        const seeded: Record<number, JobMatchResult> = {};
-        const seededStatus: Record<number, MatchStatus> = {};
-        results.forEach((r) => {
-          seeded[r.candidate_id] = r;
-          seededStatus[r.candidate_id] = 'matched';
-        });
-        setMatches(seeded);
-        setMatchStatus(seededStatus);
-      })
-      .catch((err) => console.error(err));
-  }, [selectedJobId]);
-
-  const runEvaluation = useCallback(async (candidate: Candidate, force = false) => {
-    setEvaluationStatus((prev) => ({ ...prev, [candidate.id]: 'evaluating' }));
-    setEvaluationError(null);
-
-    try {
-      const response = await fetch('/api/v1/ai/evaluate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          candidate_id: candidate.id,
-          full_name: candidate.full_name,
-          college: candidate.college,
-          cgpa: candidate.cgpa,
-          github: candidate.github ?? '',
-          status: candidate.status,
-          ai_score: candidate.ai_score,
-          force,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error ?? 'AI evaluation failed.');
-      }
-
-      setEvaluations((prev) => ({ ...prev, [candidate.id]: result }));
-      setEvaluationStatus((prev) => ({ ...prev, [candidate.id]: 'evaluated' }));
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'AI evaluation failed.';
-      setEvaluationError(message);
-      setEvaluationStatus((prev) => ({ ...prev, [candidate.id]: 'error' }));
-    }
-  }, []);
-
-  const runMatch = useCallback(
-    async (candidate: Candidate) => {
-      if (!selectedJobId) return;
-      setMatchStatus((prev) => ({ ...prev, [candidate.id]: 'matching' }));
-
-      try {
-        const response = await fetch('/api/v1/matching/evaluate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ candidate_id: candidate.id, job_description_id: selectedJobId }),
-        });
-
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error ?? 'Match failed.');
-
-        setMatches((prev) => ({
-          ...prev,
-          [candidate.id]: {
-            id: 0,
-            created_at: new Date().toISOString(),
-            candidate_id: candidate.id,
-            job_description_id: selectedJobId,
-            match_percentage: result.matchPercentage,
-            matched_skills: result.matchedSkills,
-            missing_skills: result.missingSkills,
-            experience_match: result.experienceMatch,
-            education_match: result.educationMatch,
-            recommendation: result.recommendation,
-            evaluated_at: new Date().toISOString(),
-          },
-        }));
-        setMatchStatus((prev) => ({ ...prev, [candidate.id]: 'matched' }));
-      } catch (err) {
-        console.error(err);
-        setMatchStatus((prev) => ({ ...prev, [candidate.id]: 'error' }));
-      }
-    },
-    [selectedJobId]
-  );
-
-  const runGithubAnalysis = useCallback(
-    async (candidate: Candidate) => {
-      if (!candidate.github) return;
-      setGithubLoading((prev) => ({ ...prev, [candidate.id]: true }));
-
-      try {
-        const response = await fetch('/api/v1/ai/github', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ candidate_id: candidate.id }),
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error ?? 'GitHub analysis failed.');
-        setGithubIntel((prev) => ({ ...prev, [candidate.id]: result }));
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'GitHub analysis failed.';
-        notify(message, 'error');
-        if (message === 'Candidate not found.') {
-          await loadCandidates();
-        }
-      } finally {
-        setGithubLoading((prev) => ({ ...prev, [candidate.id]: false }));
-      }
-    },
-    [notify, loadCandidates]
-  );
-
-  const handleRetryResume = async (candidate: Candidate) => {
-    setResumeParsing((prev) => ({ ...prev, [candidate.id]: true }));
-
-    try {
-      const res = await fetch(`/api/v1/candidates/${candidate.id}/parse-resume`, { method: 'POST' });
-      await res.json();
-      await loadCandidates();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setResumeParsing((prev) => ({ ...prev, [candidate.id]: false }));
-    }
-  };
-
-  const handleViewAnalysis = (candidate: Candidate) => {
-    setActiveCandidate(candidate);
-    setDrawerOpen(true);
-
-    if (!evaluations[candidate.id]) {
-      runEvaluation(candidate);
-    }
-
-    if (selectedJobId && !matches[candidate.id]) {
-      runMatch(candidate);
-    }
-
-    if (candidate.github && !githubIntel[candidate.id]) {
-      runGithubAnalysis(candidate);
-    }
-  };
-
+  // Single candidate status change
   const handleStatusChange = async (candidate: Candidate, newStatus: string) => {
     try {
       const res = await fetch(`/api/candidates/${candidate.id}`, {
@@ -384,8 +364,11 @@ export default function CandidatesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? 'Failed to update status.');
-      setTopCandidates((prev) =>
+      if (!res.ok) {
+        const body = await res.json();
+        throw new Error(body.error ?? 'Failed to update status.');
+      }
+      setCandidates((prev) =>
         prev.map((c) => (c.id === candidate.id ? { ...c, status: newStatus } : c))
       );
       notify(`${candidate.full_name} moved to ${newStatus}`, 'success');
@@ -394,95 +377,76 @@ export default function CandidatesPage() {
     }
   };
 
-  const toggleSelected = (id: number) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-
-  const handleBulkEmail = async (type: 'assessment' | 'offer') => {
+  // Bulk status change (strictly scoped to status change & clear)
+  const handleBulkStatusChange = async () => {
     if (selectedIds.size === 0) {
       notify('Select at least one candidate first.', 'error');
       return;
     }
-    setSendingEmail(true);
+    setBulkUpdating(true);
     try {
-      const res = await fetch('/api/v1/emails/send', {
-        method: 'POST',
+      const res = await fetch('/api/candidates/bulk-status', {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ candidateIds: Array.from(selectedIds), type }),
+        body: JSON.stringify({
+          candidateIds: Array.from(selectedIds),
+          status: bulkStatus,
+        }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? 'Failed to send emails.');
-      notify(`Sent ${body.sent}, failed ${body.failed}.`, body.failed > 0 ? 'error' : 'success');
-      await loadCandidates();
+      if (!res.ok) {
+        throw new Error(body.error ?? 'Failed to perform bulk status update.');
+      }
+
+      notify(`Updated ${body.updated ?? selectedIds.size} candidates to ${bulkStatus}`, 'success');
       setSelectedIds(new Set());
+      await loadCandidates();
     } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to send emails.', 'error');
+      notify(err instanceof Error ? err.message : 'Bulk status update failed.', 'error');
     } finally {
-      setSendingEmail(false);
+      setBulkUpdating(false);
     }
   };
 
-  const handleConfirmShortlist = async (candidateIds: number[]) => {
-    await Promise.all(
-      candidateIds.map((id) =>
-        fetch(`/api/candidates/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'Shortlisted' }),
-        })
-      )
-    );
-    notify(`Shortlisted ${candidateIds.length} candidates.`, 'success');
-    setShortlistOpen(false);
-    await loadCandidates();
+  // Selection helpers (Visible page only)
+  const isAllVisibleSelected = useMemo(() => {
+    if (candidates.length === 0) return false;
+    return candidates.every((c) => selectedIds.has(c.id));
+  }, [candidates, selectedIds]);
+
+  const toggleSelectAllVisible = () => {
+    if (isAllVisibleSelected) {
+      setSelectedIds(new Set());
+    } else {
+      const next = new Set<number>();
+      candidates.forEach((c) => next.add(c.id));
+      setSelectedIds(next);
+    }
   };
 
-  const uniqueColleges = useMemo(() => {
-    const set = new Set<string>();
-    topCandidates.forEach((c) => {
-      if (c.college) set.add(c.college);
+  const toggleSelectCandidate = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
-    return Array.from(set);
-  }, [topCandidates]);
+  };
 
-  const filteredCandidates = useMemo(() => {
-    return topCandidates.filter((c) => {
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesQuery =
-          c.full_name?.toLowerCase().includes(q) ||
-          c.email?.toLowerCase().includes(q) ||
-          c.college?.toLowerCase().includes(q) ||
-          c.branch?.toLowerCase().includes(q);
-        if (!matchesQuery) return false;
-      }
-
-      if (selectedCollege !== 'all' && c.college !== selectedCollege) {
-        return false;
-      }
-
-      if (minScore > 0 && (c.ai_score || 0) < minScore) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [topCandidates, searchQuery, selectedCollege, minScore]);
-
-  const selectedJob = jobDescriptions.find((jd) => jd.id === selectedJobId) ?? null;
+  const clearFilters = () => {
+    setSearchInput('');
+    router.push(pathname);
+  };
 
   return (
     <MainLayout>
       <div className={styles.container}>
+        {/* Header */}
         <div className={styles.header}>
           <div>
-            <Title2>Candidate Intelligence Hub</Title2>
+            <Title2>Candidate Directory</Title2>
             <Caption1 style={{ color: tokens.colorNeutralForeground3, display: 'block' }}>
-              {filteredCandidates.length} of {topCandidates.length} candidates loaded
+              Search, filter, and manage talent pipeline across all stages
             </Caption1>
           </div>
 
@@ -492,233 +456,266 @@ export default function CandidatesPage() {
               onTabSelect={(_, data) => setViewMode(data.value as 'table' | 'kanban')}
             >
               <Tab value="table" icon={<TableSimple24Regular />}>
-                Table View
+                Directory
               </Tab>
               <Tab value="kanban" icon={<Board24Regular />}>
-                Pipeline Board
+                Pipeline
               </Tab>
             </TabList>
 
             <Button
               appearance="secondary"
-              icon={<ArrowTrendingRegular />}
-              onClick={() => setShortlistOpen(true)}
-            >
-              Shortlist
-            </Button>
-            <Button
-              appearance="secondary"
-              icon={<MailRegular />}
-              disabled={sendingEmail || selectedIds.size === 0}
-              onClick={() => handleBulkEmail('assessment')}
-            >
-              Send Assessment ({selectedIds.size})
-            </Button>
-            <Button
-              appearance="primary"
               icon={<DatabaseRegular />}
               onClick={() => setDatasetManagerOpen(true)}
             >
-              Manage Dataset
+              Dataset Manager
+            </Button>
+            <Button
+              appearance="subtle"
+              icon={<ArrowSyncRegular />}
+              onClick={() => loadCandidates()}
+            >
+              Refresh
             </Button>
           </div>
         </div>
 
-        {/* Filter Toolbar */}
+        {/* Filter Bar */}
         <div className={styles.filterBar}>
           <div className={styles.filterInputs}>
             <Input
+              placeholder="Search by name, email, college, branch..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               contentBefore={<SearchRegular />}
-              placeholder="Search by name, email, or skill..."
-              value={searchQuery}
-              onChange={(_, d) => setSearchQuery(d.value)}
-              style={{ minWidth: '240px' }}
+              style={{ minWidth: '280px', flex: 1 }}
             />
 
             <Dropdown
-              placeholder="Filter by College..."
-              value={selectedCollege === 'all' ? 'All Colleges' : selectedCollege}
-              onOptionSelect={(_, data) => setSelectedCollege(data.optionValue || 'all')}
-              style={{ minWidth: '200px' }}
+              value={urlStatus === 'all' ? 'All Statuses' : urlStatus}
+              selectedOptions={[urlStatus]}
+              onOptionSelect={(_, data) =>
+                updateQueryParams({ status: data.optionValue as string }, true)
+              }
+              placeholder="Filter by Status"
+              style={{ minWidth: '180px' }}
             >
-              <Option value="all">All Colleges</Option>
-              {uniqueColleges.map((col) => (
-                <Option key={col} value={col}>
-                  {col}
+              <Option value="all">All Statuses</Option>
+              {PIPELINE_STAGES.map((s) => (
+                <Option key={s} value={s}>
+                  {s}
                 </Option>
               ))}
             </Dropdown>
 
             <Dropdown
-              className={styles.jdSelector}
-              placeholder="Match against Job Description..."
-              value={selectedJob?.title ?? 'No JD selected'}
-              onOptionSelect={(_, data) =>
-                setSelectedJobId(data.optionValue ? Number(data.optionValue) : null)
+              value={
+                urlSortBy === 'ai_score'
+                  ? 'Sort: AI Score'
+                  : urlSortBy === 'full_name'
+                  ? 'Sort: Name'
+                  : urlSortBy === 'created_at'
+                  ? 'Sort: Created Date'
+                  : 'Sort: Test Score'
               }
+              selectedOptions={[urlSortBy]}
+              onOptionSelect={(_, data) =>
+                updateQueryParams({ sortBy: data.optionValue as CandidateSortField }, false)
+              }
+              style={{ minWidth: '160px' }}
             >
-              <Option value="">No job description</Option>
-              {jobDescriptions.map((jd) => (
-                <Option key={jd.id} value={String(jd.id)}>
-                  {jd.title}
-                </Option>
-              ))}
+              <Option value="ai_score">Sort: AI Score</Option>
+              <Option value="full_name">Sort: Name</Option>
+              <Option value="created_at">Sort: Created Date</Option>
+              <Option value="test_code">Sort: Test Score</Option>
             </Dropdown>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '160px' }}>
-              <Caption1 style={{ color: tokens.colorNeutralForeground3, whiteSpace: 'nowrap' }}>
-                Min Score: {minScore}%
-              </Caption1>
-              <Slider
-                min={0}
-                max={90}
-                step={5}
-                value={minScore}
-                onChange={(_, d) => setMinScore(d.value)}
-                style={{ flex: 1 }}
-              />
-            </div>
+            <Dropdown
+              value={urlSortOrder === 'asc' ? 'Ascending' : 'Descending'}
+              selectedOptions={[urlSortOrder]}
+              onOptionSelect={(_, data) =>
+                updateQueryParams({ sortOrder: data.optionValue as CandidateSortOrder }, false)
+              }
+              style={{ minWidth: '130px' }}
+            >
+              <Option value="desc">Descending</Option>
+              <Option value="asc">Ascending</Option>
+            </Dropdown>
+
+            {(urlSearch || urlStatus !== 'all' || urlSortBy !== 'ai_score' || urlSortOrder !== 'desc') && (
+              <Button
+                appearance="subtle"
+                icon={<DismissRegular />}
+                onClick={clearFilters}
+              >
+                Reset
+              </Button>
+            )}
           </div>
         </div>
 
+        {/* Visible Multi-Select Bulk Actions Toolbar */}
+        {selectedIds.size > 0 && (
+          <div className={styles.bulkToolbar}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <CheckmarkRegular style={{ color: '#818cf8' }} />
+              <Body2 style={{ fontWeight: 600 }}>
+                {selectedIds.size} visible candidate{selectedIds.size > 1 ? 's' : ''} selected
+              </Body2>
+            </div>
+
+            <div className={styles.bulkActionsGroup}>
+              <Dropdown
+                value={bulkStatus}
+                selectedOptions={[bulkStatus]}
+                onOptionSelect={(_, data) => setBulkStatus(data.optionValue as string)}
+                style={{ minWidth: '170px' }}
+              >
+                {PIPELINE_STAGES.map((s) => (
+                  <Option key={s} value={s} text={`Move to: ${s}`}>
+                    Move to: {s}
+                  </Option>
+                ))}
+              </Dropdown>
+
+              <Button
+                appearance="primary"
+                disabled={bulkUpdating}
+                onClick={handleBulkStatusChange}
+              >
+                {bulkUpdating ? 'Updating...' : 'Apply Status'}
+              </Button>
+
+              <Button
+                appearance="subtle"
+                icon={<DismissRegular />}
+                onClick={() => setSelectedIds(new Set())}
+              >
+                Clear Selection
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* View Mode Rendering */}
         {viewMode === 'kanban' ? (
           <CandidateKanban
-            candidates={filteredCandidates}
-            matches={matches}
+            candidates={candidates}
             onStatusChange={handleStatusChange}
-            onViewAnalysis={handleViewAnalysis}
+            onViewAnalysis={(c) => {
+              setActiveCandidate(c);
+              setDrawerOpen(true);
+            }}
           />
         ) : (
-          <ChartContainer
-            title="Candidate Directory"
-            subtitle="Ranked by AI matching and vector intelligence"
-          >
+          <ChartContainer title={`Talent Directory (${totalCount} Total)`}>
             {loading ? (
-              <p>Loading candidate directory...</p>
-            ) : filteredCandidates.length === 0 ? (
-              <div style={{ padding: tokens.spacingVerticalXXL, textAlign: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}>
+                <Spinner label="Loading candidates from server..." />
+              </div>
+            ) : error ? (
+              <div className={styles.emptyState}>
+                <Title2 style={{ color: '#f87171' }}>Error Loading Candidates</Title2>
+                <Body2>{error}</Body2>
+                <Button appearance="primary" onClick={() => loadCandidates()}>
+                  Retry Query
+                </Button>
+              </div>
+            ) : candidates.length === 0 ? (
+              <div className={styles.emptyState}>
+                <Title2>No Candidates Found</Title2>
                 <Body2 style={{ color: tokens.colorNeutralForeground3 }}>
-                  No candidates match the selected filters.
+                  {urlSearch || urlStatus !== 'all'
+                    ? 'No candidates matched your search and filter parameters.'
+                    : 'Your workspace currently has no candidate records.'}
                 </Body2>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {urlSearch || urlStatus !== 'all' ? (
+                    <Button appearance="primary" onClick={clearFilters}>
+                      Reset All Filters
+                    </Button>
+                  ) : (
+                    <Button
+                      appearance="primary"
+                      icon={<DatabaseRegular />}
+                      onClick={() => setDatasetManagerOpen(true)}
+                    >
+                      Import Dataset
+                    </Button>
+                  )}
+                </div>
               </div>
             ) : (
-              <div
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: tokens.spacingVerticalM,
-                }}
-              >
-                {filteredCandidates.map((candidate) => (
-                  <div key={candidate.id} className={styles.candidateItem}>
-                    <Checkbox
-                      checked={selectedIds.has(candidate.id)}
-                      onChange={() => toggleSelected(candidate.id)}
-                    />
-                    <div className={styles.candidateContent}>
-                      <div className={styles.candidateName}>{candidate.full_name}</div>
-                      <div className={styles.candidateDesc}>
-                        {candidate.college} • {candidate.email}
-                        {candidate.cgpa ? ` • CGPA ${candidate.cgpa}` : ''}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* Select All Visible Header Row */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px 16px',
+                    borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+                  }}
+                >
+                  <Checkbox
+                    checked={isAllVisibleSelected}
+                    onChange={toggleSelectAllVisible}
+                    label={<Caption1>Select All Visible ({candidates.length})</Caption1>}
+                  />
+                  <Caption1 style={{ color: tokens.colorNeutralForeground3 }}>
+                    Showing page {urlPage} of {totalPages}
+                  </Caption1>
+                </div>
+
+                {/* Candidate List Cards */}
+                {candidates.map((c) => (
+                  <div key={c.id} className={styles.candidateItem}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <Checkbox
+                        checked={selectedIds.has(c.id)}
+                        onChange={() => toggleSelectCandidate(c.id)}
+                      />
+                      <div className={styles.candidateContent}>
+                        <Link
+                          href={`/candidates/${c.id}`}
+                          className={styles.candidateNameLink}
+                        >
+                          {c.full_name}
+                        </Link>
+                        <span className={styles.candidateDesc}>
+                          {c.email} &bull; {c.college || 'College Unspecified'}
+                          {c.branch ? ` (${c.branch})` : ''}
+                        </span>
                       </div>
-                      {candidate.resume_url ? (
-                        <div className={styles.candidateDesc}>
-                          Resume:{' '}
-                          {candidate.parsing_status === 'success'
-                            ? 'Parsed'
-                            : candidate.parsing_status === 'failed'
-                            ? 'Parsing failed'
-                            : 'Pending'}
-                          {candidate.parsing_status === 'failed' ? (
-                            <Button
-                              appearance="transparent"
-                              size="small"
-                              icon={<ArrowSyncRegular />}
-                              disabled={resumeParsing[candidate.id]}
-                              onClick={() => handleRetryResume(candidate)}
-                            >
-                              Retry
-                            </Button>
-                          ) : null}
-                        </div>
-                      ) : null}
                     </div>
 
                     <div className={styles.scoreContainer}>
-                      <div className={styles.scoreMeta}>
-                        <div
-                          className={styles.score}
-                          style={{
-                            color:
-                              candidate.ai_score >= 85
-                                ? '#22c55e'
-                                : candidate.ai_score >= 70
-                                ? '#eab308'
-                                : '#ef4444',
-                          }}
-                        >
-                          {candidate.ai_score}%
+                      {c.ai_score !== null && c.ai_score !== undefined ? (
+                        <div className={styles.scoreMeta}>
+                          <span
+                            className={styles.score}
+                            style={{
+                              color:
+                                c.ai_score >= 80
+                                  ? '#34d399'
+                                  : c.ai_score >= 60
+                                  ? '#fbbf24'
+                                  : '#f87171',
+                            }}
+                          >
+                            {c.ai_score}
+                          </span>
+                          <span className={styles.scoreLabel}>AI Fit</span>
                         </div>
-                        <div className={styles.scoreLabel}>Match Score</div>
-                      </div>
-
-                      {selectedJobId ? (
-                        <Badge
-                          appearance="tint"
-                          color={
-                            matchStatus[candidate.id] === 'matched'
-                              ? 'success'
-                              : matchStatus[candidate.id] === 'matching'
-                              ? 'informative'
-                              : matchStatus[candidate.id] === 'error'
-                              ? 'danger'
-                              : 'subtle'
-                          }
-                        >
-                          {matchStatus[candidate.id] === 'matched'
-                            ? `JD Match ${matches[candidate.id]?.match_percentage}%`
-                            : matchStatus[candidate.id] === 'matching'
-                            ? 'Matching...'
-                            : matchStatus[candidate.id] === 'error'
-                            ? 'Match Failed'
-                            : 'Not Matched'}
-                        </Badge>
-                      ) : null}
-
-                      <Badge
-                        appearance="tint"
-                        color={
-                          evaluationStatus[candidate.id] === 'evaluated'
-                            ? 'success'
-                            : evaluationStatus[candidate.id] === 'evaluating'
-                            ? 'informative'
-                            : evaluationStatus[candidate.id] === 'error'
-                            ? 'danger'
-                            : 'subtle'
-                        }
-                      >
-                        {evaluationStatus[candidate.id] === 'evaluated'
-                          ? 'AI Ready'
-                          : evaluationStatus[candidate.id] === 'evaluating'
-                          ? 'Evaluating...'
-                          : evaluationStatus[candidate.id] === 'error'
-                          ? 'Failed'
-                          : 'Pending'}
-                      </Badge>
-
-                      {candidate.github ? (
-                        <Badge appearance="tint" color="brand" icon={<Code16Regular />}>
-                          {candidate.github_score ? `${candidate.github_score}/100` : 'GitHub'}
-                        </Badge>
                       ) : null}
 
                       <Dropdown
-                        style={{ minWidth: '160px' }}
-                        value={candidate.status}
+                        value={c.status}
+                        selectedOptions={[c.status]}
                         onOptionSelect={(_, data) =>
-                          data.optionValue && handleStatusChange(candidate, data.optionValue)
+                          handleStatusChange(c, data.optionValue as string)
                         }
+                        style={{ minWidth: '150px' }}
                       >
                         {PIPELINE_STAGES.map((stage) => (
                           <Option key={stage} value={stage}>
@@ -728,65 +725,129 @@ export default function CandidatesPage() {
                       </Dropdown>
 
                       <Button
-                        appearance="secondary"
-                        size="small"
+                        appearance="subtle"
                         icon={<Sparkle16Regular />}
-                        onClick={() => handleViewAnalysis(candidate)}
+                        onClick={() => {
+                          setActiveCandidate(c);
+                          setDrawerOpen(true);
+                        }}
                       >
                         Insights
                       </Button>
+
+                      <Link href={`/candidates/${c.id}`}>
+                        <Button appearance="secondary" icon={<PersonRegular />}>
+                          Profile
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 ))}
+
+                {/* Pagination Footer */}
+                <div className={styles.paginationContainer}>
+                  <Body2 style={{ color: tokens.colorNeutralForeground3 }}>
+                    Showing {(urlPage - 1) * urlLimit + 1} -{' '}
+                    {Math.min(urlPage * urlLimit, totalCount)} of {totalCount} candidates
+                  </Body2>
+
+                  <div className={styles.paginationControls}>
+                    <Dropdown
+                      value={`${urlLimit} / page`}
+                      selectedOptions={[String(urlLimit)]}
+                      onOptionSelect={(_, data) =>
+                        updateQueryParams({ limit: Number(data.optionValue) }, true)
+                      }
+                      style={{ minWidth: '110px' }}
+                    >
+                      <Option value="10">10 / page</Option>
+                      <Option value="20">20 / page</Option>
+                      <Option value="50">50 / page</Option>
+                    </Dropdown>
+
+                    <Button
+                      appearance="subtle"
+                      icon={<ChevronLeftRegular />}
+                      disabled={urlPage <= 1}
+                      onClick={() => updateQueryParams({ page: urlPage - 1 })}
+                    >
+                      Previous
+                    </Button>
+
+                    <Caption1 style={{ padding: '0 8px' }}>
+                      Page {urlPage} of {totalPages}
+                    </Caption1>
+
+                    <Button
+                      appearance="subtle"
+                      icon={<ChevronRightRegular />}
+                      disabled={urlPage >= totalPages}
+                      onClick={() => updateQueryParams({ page: urlPage + 1 })}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
           </ChartContainer>
         )}
+
+        {/* Dataset Manager Dialog */}
+        <DatasetManagerDialog
+          open={datasetManagerOpen}
+          onClose={() => setDatasetManagerOpen(false)}
+          onImported={loadCandidates}
+        />
+
+        {/* Quick Insights Drawer */}
+        {activeCandidate && (
+          <CandidateInsightsDrawer
+            open={drawerOpen}
+            onClose={() => {
+              setDrawerOpen(false);
+              setActiveCandidate(null);
+            }}
+            loading={evaluationStatus[activeCandidate.id] === 'evaluating'}
+            candidateName={activeCandidate.full_name}
+            candidateId={activeCandidate.id}
+            data={evaluations[activeCandidate.id]}
+            jobMatch={matches[activeCandidate.id] ? {
+              jobTitle: 'Selected Job',
+              matchPercentage: matches[activeCandidate.id].match_percentage,
+              matchedSkills: matches[activeCandidate.id].matched_skills || [],
+              missingSkills: matches[activeCandidate.id].missing_skills || [],
+              experienceMatch: matches[activeCandidate.id].experience_match || 'Good',
+              educationMatch: matches[activeCandidate.id].education_match || 'Aligned',
+            } : null}
+            githubIntel={githubIntel[activeCandidate.id] ? {
+              score: githubIntel[activeCandidate.id].score,
+              summary: githubIntel[activeCandidate.id].summary,
+              languages: githubIntel[activeCandidate.id].languages,
+              portfolioVerdict: githubIntel[activeCandidate.id].portfolioVerdict,
+              highlights: githubIntel[activeCandidate.id].highlights,
+              strongestRepo: githubIntel[activeCandidate.id].strongestRepo,
+            } : null}
+            githubLoading={githubLoading[activeCandidate.id] || false}
+          />
+        )}
       </div>
-
-      <CandidateInsightsDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        loading={!!activeCandidate && evaluationStatus[activeCandidate.id] === 'evaluating'}
-        candidateId={activeCandidate?.id}
-        candidateName={activeCandidate?.full_name ?? ''}
-        errorMessage={
-          activeCandidate && evaluationStatus[activeCandidate.id] === 'error'
-            ? evaluationError
-            : null
-        }
-        onRetry={activeCandidate ? () => runEvaluation(activeCandidate, true) : undefined}
-        data={activeCandidate ? evaluations[activeCandidate.id] : undefined}
-        jobMatchLoading={!!activeCandidate && matchStatus[activeCandidate.id] === 'matching'}
-        jobMatch={
-          activeCandidate && selectedJob && matches[activeCandidate.id]
-            ? {
-                jobTitle: selectedJob.title,
-                matchPercentage: matches[activeCandidate.id].match_percentage,
-                matchedSkills: matches[activeCandidate.id].matched_skills,
-                missingSkills: matches[activeCandidate.id].missing_skills,
-                experienceMatch: matches[activeCandidate.id].experience_match,
-                educationMatch: matches[activeCandidate.id].education_match,
-              }
-            : null
-        }
-        githubLoading={!!activeCandidate && githubLoading[activeCandidate.id]}
-        githubIntel={activeCandidate ? githubIntel[activeCandidate.id] ?? null : null}
-      />
-
-      <DatasetManagerDialog
-        open={datasetManagerOpen}
-        onClose={() => setDatasetManagerOpen(false)}
-        onImported={loadCandidates}
-      />
-
-      <ShortlistDialog
-        open={shortlistOpen}
-        onClose={() => setShortlistOpen(false)}
-        candidates={topCandidates}
-        matches={matches}
-        onConfirm={handleConfirmShortlist}
-      />
     </MainLayout>
+  );
+}
+
+export default function CandidatesPage() {
+  return (
+    <Suspense
+      fallback={
+        <MainLayout>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '64px' }}>
+            <Spinner label="Loading candidate directory..." />
+          </div>
+        </MainLayout>
+      }
+    >
+      <CandidatesContent />
+    </Suspense>
   );
 }

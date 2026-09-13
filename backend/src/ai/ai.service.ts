@@ -69,20 +69,28 @@ function isValidEvaluationResult(value: unknown): value is CandidateEvaluationRe
 
 @Injectable()
 export class AiService {
+  async getCachedEvaluation(candidateId: number): Promise<CandidateEvaluationResult | null> {
+    const { data: cached } = await supabase
+      .from('candidates')
+      .select('ai_evaluation')
+      .eq('id', candidateId)
+      .single();
+
+    if (cached?.ai_evaluation) {
+      return cached.ai_evaluation as CandidateEvaluationResult;
+    }
+    return null;
+  }
+
   async evaluateCandidate(dto: EvaluateCandidateDto): Promise<CandidateEvaluationResult> {
     const force = dto.force === true;
 
     // Cache check: never re-run AI for a candidate that already has an evaluation,
     // unless the recruiter explicitly requests "force" (Re-evaluate).
     if (dto.candidate_id && !force) {
-      const { data: cached } = await supabase
-        .from('candidates')
-        .select('ai_evaluation')
-        .eq('id', dto.candidate_id)
-        .single();
-
-      if (cached?.ai_evaluation) {
-        return cached.ai_evaluation as CandidateEvaluationResult;
+      const cached = await this.getCachedEvaluation(dto.candidate_id);
+      if (cached) {
+        return cached;
       }
     }
 

@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+dist/
+coverage/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Version control
+.git/
+.gitignore
+
+# Docker artifacts
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Tests
+test/
+*.spec.ts
+*.test.ts
+
+# Logs
+*.log
+npm-debug.log*

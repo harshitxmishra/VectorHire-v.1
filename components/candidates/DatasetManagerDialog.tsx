@@ -144,12 +144,42 @@ export function DatasetManagerDialog({ open, onClose, onImported }: DatasetManag
       formData.append('datasetName', datasetName || file.name);
       formData.append('uploadedBy', uploadedBy);
 
-      const res = await fetch('/api/candidates/import', { method: 'POST', body: formData });
+      const res = await fetch('/api/v1/datasets/import', { method: 'POST', body: formData });
       const body = await res.json();
 
       if (!res.ok) throw new Error(body.error ?? 'Import failed.');
 
-      setSuccess(`Imported ${body.inserted} candidates (${mode}).`);
+      let insertedCount = body.inserted;
+      let finalMode = mode;
+
+      if (body.status === 'queued' && body.jobId) {
+        let attempts = 0;
+        const maxAttempts = 60;
+        let completed = false;
+
+        while (attempts < maxAttempts && !completed) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          attempts++;
+
+          const pollRes = await fetch(`/api/v1/datasets/jobs/${body.jobId}`);
+          if (!pollRes.ok) continue;
+          const pollData = await pollRes.json();
+
+          if (pollData.state === 'completed') {
+            insertedCount = pollData.result?.totalCandidates ?? 0;
+            finalMode = pollData.result?.mode ?? mode;
+            completed = true;
+          } else if (pollData.state === 'failed') {
+            throw new Error(pollData.error || 'Dataset import failed.');
+          }
+        }
+
+        if (!completed) {
+          throw new Error('Dataset import timed out. Please check history shortly.');
+        }
+      }
+
+      setSuccess(`Imported ${insertedCount} candidates (${finalMode}).`);
       setFile(null);
       setPreviewRows([]);
       setPreviewHeaders([]);

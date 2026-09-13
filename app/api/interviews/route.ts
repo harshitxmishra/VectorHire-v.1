@@ -1,9 +1,19 @@
 import { NextResponse } from 'next/server';
-import { getInterviews, createInterview } from '@/lib/services/interview-service';
+import { getInterviews, getInterviewsByCandidateId, createInterview } from '@/lib/services/interview-service';
 import { validateInterviewInput } from '@/lib/validation/schemas';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const candidateIdParam = searchParams.get('candidateId');
+    if (candidateIdParam !== null) {
+      const candidateId = Number(candidateIdParam);
+      if (!Number.isFinite(candidateId) || candidateId <= 0) {
+        return NextResponse.json({ error: 'Invalid candidateId. Must be a positive integer.' }, { status: 400 });
+      }
+      const interviews = await getInterviewsByCandidateId(candidateId);
+      return NextResponse.json(interviews);
+    }
     const interviews = await getInterviews();
     return NextResponse.json(interviews);
   } catch (err) {

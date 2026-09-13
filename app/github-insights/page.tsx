@@ -93,11 +93,41 @@ export default function GitHubInsightsPage() {
       });
       const body = await res.json();
       if (!res.ok) {
-        notify(body.error ?? 'GitHub analysis failed.', 'error');
-      } else {
-        notify(`GitHub analysis complete — score ${body.score}/100`, 'success');
-        await load();
+        throw new Error(body.error ?? 'GitHub analysis failed.');
       }
+
+      let score = body.score;
+
+      if (body.status === 'completed' && body.result) {
+        score = body.result.score;
+      } else if (body.status === 'queued' && body.jobId) {
+        let attempts = 0;
+        const maxAttempts = 60;
+        let completed = false;
+
+        while (attempts < maxAttempts && !completed) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          attempts++;
+
+          const pollRes = await fetch(`/api/v1/ai/github/jobs/${body.jobId}`);
+          if (!pollRes.ok) continue;
+          const pollData = await pollRes.json();
+
+          if (pollData.state === 'completed') {
+            score = pollData.result?.score;
+            completed = true;
+          } else if (pollData.state === 'failed') {
+            throw new Error(pollData.error || 'GitHub analysis failed.');
+          }
+        }
+
+        if (!completed) {
+          throw new Error('GitHub analysis timed out. Please try again.');
+        }
+      }
+
+      notify(`GitHub analysis complete — score ${score}/100`, 'success');
+      await load();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'GitHub analysis failed.', 'error');
     } finally {

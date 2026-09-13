@@ -1,11 +1,31 @@
 import { NextResponse } from 'next/server';
 import {
+  getCandidateById,
   updateCandidateStatus,
   deleteCandidate,
 } from '@/lib/services/candidate-service';
-import { logTimelineEvent } from '@/lib/services/timeline-service';
 import { validateCandidateStatus } from '@/lib/validation/schemas';
 import { verifyServerAuth } from '@/lib/auth/server-auth';
+
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const candidateId = Number(id);
+
+  if (!Number.isFinite(candidateId) || candidateId <= 0) {
+    return NextResponse.json({ error: 'Invalid candidate id. Must be a positive integer.' }, { status: 400 });
+  }
+
+  try {
+    const candidate = await getCandidateById(candidateId);
+    if (!candidate) {
+      return NextResponse.json({ error: `Candidate with ID ${candidateId} not found.` }, { status: 404 });
+    }
+    return NextResponse.json(candidate);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to fetch candidate.';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -24,9 +44,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     const data = await updateCandidateStatus(candidateId, validation.data);
-
-    await logTimelineEvent(candidateId, 'status_changed', `Moved to ${validation.data}`);
-
     return NextResponse.json(data);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to update candidate.';
@@ -55,4 +72,3 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-

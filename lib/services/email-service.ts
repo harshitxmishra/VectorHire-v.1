@@ -1,8 +1,11 @@
 import nodemailer from 'nodemailer';
-import { supabase } from '@/lib/supabase/client';
 import { logTimelineEvent } from '@/lib/services/timeline-service';
+import { EmailLogRepository, EmailLogType } from '@/lib/repositories/email-log-repository';
+import { SupabaseEmailLogRepository } from '@/lib/repositories/supabase-email-log-repository';
 
-export type EmailType = 'assessment' | 'interview' | 'offer';
+export type EmailType = EmailLogType;
+
+const defaultEmailLogRepository = new SupabaseEmailLogRepository();
 
 function getTransporter() {
   if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
@@ -18,7 +21,7 @@ function getTransporter() {
   });
 }
 
-interface EmailExtra {
+export interface EmailExtra {
   assessmentUrl?: string;
   assessmentTitle?: string;
   assessmentDeadline?: string;
@@ -66,42 +69,81 @@ function buildTemplate(
   }
 }
 
+export interface EmailPayload {
+  to: string;
+  subject: string;
+  html: string;
+}
+
+export interface EmailSendResult {
+  messageId?: string;
+  success: boolean;
+  error?: string;
+}
+
+export interface EmailProvider {
+  sendEmail(payload: EmailPayload): Promise<EmailSendResult>;
+}
+
+export class NodemailerEmailProvider implements EmailProvider {
+  async sendEmail(payload: EmailPayload): Promise<EmailSendResult> {
+    const transporter = getTransporter();
+    const deliverTo = process.env.DEMO_EMAIL_OVERRIDE || payload.to;
+    const subjectPrefix = process.env.DEMO_EMAIL_OVERRIDE ? `[Demo — intended for ${payload.to}] ` : '';
+
+    const info = await transporter.sendMail({
+      from: process.env.GMAIL_USER,
+      to: deliverTo,
+      subject: `${subjectPrefix}${payload.subject}`,
+      html: payload.html,
+    });
+
+    return {
+      messageId: info?.messageId,
+      success: true,
+    };
+  }
+}
+
+const defaultEmailProvider = new NodemailerEmailProvider();
+
 export async function sendCandidateEmail(
   candidateId: number,
   type: EmailType,
   recipient: string,
   candidateName: string,
-  extra?: EmailExtra
+  extra?: EmailExtra,
+  repo: EmailLogRepository = defaultEmailLogRepository,
+  provider: EmailProvider = defaultEmailProvider
 ): Promise<{ status: 'sent' | 'failed'; error?: string }> {
-  const { data: log } = await supabase
-    .from('email_logs')
-    .insert({ candidate_id: candidateId, email_type: type, recipient, status: 'pending' })
-    .select()
-    .single();
+  let logId: number | null = null;
+  try {
+    const log = await repo.create({
+      candidate_id: candidateId,
+      email_type: type,
+      recipient,
+      status: 'pending',
+    });
+    logId = log.id;
+  } catch (err) {
+    // If creating initial log fails, proceed with best effort or log warning
+  }
 
   try {
-    const transporter = getTransporter();
     const { subject, html } = buildTemplate(type, candidateName, extra);
 
-    // Demo mode: deliver to a single inbox instead of the candidate's real
-    // address, while email_logs.recipient still records the intended
-    // recipient for accurate tracking. Set DEMO_EMAIL_OVERRIDE in .env.local;
-    // remove it to send to real candidate addresses again.
-    const deliverTo = process.env.DEMO_EMAIL_OVERRIDE || recipient;
-    const subjectPrefix = process.env.DEMO_EMAIL_OVERRIDE ? `[Demo — intended for ${recipient}] ` : '';
-
-    await transporter.sendMail({
-      from: process.env.GMAIL_USER,
-      to: deliverTo,
-      subject: `${subjectPrefix}${subject}`,
+    const result = await provider.sendEmail({
+      to: recipient,
+      subject,
       html,
     });
 
-    if (log) {
-      await supabase
-        .from('email_logs')
-        .update({ status: 'sent', sent_at: new Date().toISOString() })
-        .eq('id', log.id);
+    if (!result.success) {
+      throw new Error(result.error ?? 'Failed to send email via provider.');
+    }
+
+    if (logId !== null) {
+      await repo.markAsSent(logId);
     }
 
     await logTimelineEvent(candidateId, `${type}_sent`, `Email sent to ${recipient}`);
@@ -109,10 +151,17 @@ export async function sendCandidateEmail(
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to send email.';
 
-    if (log) {
-      await supabase.from('email_logs').update({ status: 'failed', error_message: message }).eq('id', log.id);
+    if (logId !== null) {
+      await repo.markAsFailed(logId, message);
     }
 
     return { status: 'failed', error: message };
   }
+}
+
+export async function getCandidateEmailLogs(
+  candidateId: number,
+  repo: EmailLogRepository = defaultEmailLogRepository
+) {
+  return repo.findByCandidateId(candidateId);
 }

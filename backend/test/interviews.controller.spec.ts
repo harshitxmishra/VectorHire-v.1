@@ -21,6 +21,7 @@ describe('InterviewsController', () => {
 
   const mockService = {
     findAll: vi.fn().mockResolvedValue([mockInterview]),
+    findByCandidateId: vi.fn().mockResolvedValue([mockInterview]),
     create: vi.fn().mockResolvedValue(mockInterview),
     updateStatus: vi.fn().mockResolvedValue({ ...mockInterview, status: 'completed' }),
   };
@@ -34,10 +35,22 @@ describe('InterviewsController', () => {
     expect(controller).toBeDefined();
   });
 
-  it('should list all interviews (GET /api/v1/interviews)', async () => {
+  it('should list all interviews when candidateId is not provided (GET /api/v1/interviews)', async () => {
     const result = await controller.findAll();
     expect(result).toEqual([mockInterview]);
     expect(service.findAll).toHaveBeenCalled();
+  });
+
+  it('should list candidate interviews when candidateId is provided (GET /api/v1/interviews?candidateId=10)', async () => {
+    const result = await controller.findAll('10');
+    expect(result).toEqual([mockInterview]);
+    expect(service.findByCandidateId).toHaveBeenCalledWith(10);
+  });
+
+  it('should throw BadRequestException when candidateId is invalid', async () => {
+    await expect(controller.findAll('invalid-id')).rejects.toThrow(
+      'Invalid candidateId. Must be a positive integer.'
+    );
   });
 
   it('should create interview (POST /api/v1/interviews)', async () => {

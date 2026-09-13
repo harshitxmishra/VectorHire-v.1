@@ -45,8 +45,16 @@ describe('GithubService', () => {
 
     const result = await service.analyzeCandidate(10);
     expect(result).toEqual(mockAnalysis);
-    expect(githubService.getOrAnalyzeGitHub).toHaveBeenCalledWith(10);
+    expect(githubService.getOrAnalyzeGitHub).toHaveBeenCalledWith(10, false);
     expect(timelineService.logTimelineEvent).toHaveBeenCalledWith(10, 'github_analyzed', 'Score: 80');
+  });
+
+  it('should pass force flag to getOrAnalyzeGitHub', async () => {
+    (githubService.getOrAnalyzeGitHub as any).mockResolvedValue(mockAnalysis);
+    (timelineService.logTimelineEvent as any).mockResolvedValue({});
+
+    await service.analyzeCandidate(10, true);
+    expect(githubService.getOrAnalyzeGitHub).toHaveBeenCalledWith(10, true);
   });
 
   it('should search GitHub by URL', async () => {

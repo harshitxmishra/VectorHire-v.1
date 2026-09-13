@@ -42,7 +42,7 @@ describe('verifyServerAuth', () => {
 
   it('rejects unauthenticated requests and ignores client demo headers in production', async () => {
     const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'production';
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
 
     const req = new Request('http://localhost/api/candidates', {
       headers: { 'x-demo-user': '{"role":"FakeAdmin","email":"hacker@evil.com"}' },
@@ -53,6 +53,6 @@ describe('verifyServerAuth', () => {
     expect(result.user).toBeNull();
     expect(result.response?.status).toBe(401);
 
-    process.env.NODE_ENV = originalEnv;
+    (process.env as Record<string, string | undefined>).NODE_ENV = originalEnv;
   });
 });

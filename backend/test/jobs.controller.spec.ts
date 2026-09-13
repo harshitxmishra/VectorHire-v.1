@@ -17,6 +17,7 @@ describe('JobsController', () => {
 
   const mockService = {
     findAll: vi.fn().mockResolvedValue([mockJob]),
+    findOne: vi.fn().mockResolvedValue(mockJob),
     create: vi.fn().mockResolvedValue(mockJob),
     update: vi.fn().mockResolvedValue({ ...mockJob, title: 'Lead AI Engineer' }),
     remove: vi.fn().mockResolvedValue({ success: true, message: 'Job description 1 deleted.' }),
@@ -35,6 +36,12 @@ describe('JobsController', () => {
     const result = await controller.findAll();
     expect(result).toEqual([mockJob]);
     expect(service.findAll).toHaveBeenCalled();
+  });
+
+  it('should get job description by id (GET /api/v1/jobs/:id)', async () => {
+    const result = await controller.findOne(1);
+    expect(result).toEqual(mockJob);
+    expect(service.findOne).toHaveBeenCalledWith(1);
   });
 
   it('should create job description (POST /api/v1/jobs)', async () => {

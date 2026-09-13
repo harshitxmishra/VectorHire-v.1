@@ -22,6 +22,11 @@ export class JobsController {
     return this.jobsService.findAll();
   }
 
+  @Get(':id')
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.jobsService.findOne(id);
+  }
+
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createDto: CreateJobDto) {

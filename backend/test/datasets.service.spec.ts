@@ -1,18 +1,13 @@
 import 'reflect-metadata';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DatasetsService } from '../src/datasets/datasets.service';
-import * as datasetService from '@/lib/services/dataset-service';
 import { InternalServerErrorException } from '@nestjs/common';
 import { DatasetUpload } from '@/lib/types';
 
-vi.mock('@/lib/services/dataset-service', () => ({
-  getDatasetUploads: vi.fn(),
-  recordDatasetUpload: vi.fn(),
-  deleteAllCandidates: vi.fn(),
-}));
-
 describe('DatasetsService', () => {
   let service: DatasetsService;
+  let mockDatasetRepo: any;
+  let mockCandidateRepo: any;
 
   const mockDatasets: DatasetUpload[] = [
     {
@@ -27,24 +22,102 @@ describe('DatasetsService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new DatasetsService();
+
+    mockDatasetRepo = {
+      findAll: vi.fn().mockResolvedValue(mockDatasets),
+      findById: vi.fn().mockResolvedValue(mockDatasets[0]),
+      create: vi.fn().mockResolvedValue(mockDatasets[0]),
+      importAtomic: vi.fn().mockResolvedValue({
+        dataset_id: 1,
+        dataset_name: 'candidates-2026.csv',
+        mode: 'replace',
+        total_candidates: 10,
+        success: true,
+      }),
+    };
+
+    mockCandidateRepo = {
+      deleteAll: vi.fn().mockResolvedValue(undefined),
+    };
+
+    service = new DatasetsService(mockDatasetRepo, mockCandidateRepo);
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  it('should return dataset uploads', async () => {
-    (datasetService.getDatasetUploads as any).mockResolvedValue(mockDatasets);
-
+  it('should return dataset uploads from repository', async () => {
     const result = await service.getDatasets();
     expect(result).toEqual(mockDatasets);
-    expect(datasetService.getDatasetUploads).toHaveBeenCalled();
+    expect(mockDatasetRepo.findAll).toHaveBeenCalled();
   });
 
-  it('should throw InternalServerErrorException if getDatasetUploads fails', async () => {
-    (datasetService.getDatasetUploads as any).mockRejectedValue(new Error('DB read error'));
+  it('should record dataset upload via repository', async () => {
+    const input = {
+      dataset_name: 'candidates-2026.csv',
+      uploaded_by: 'Admin',
+      mode: 'append' as const,
+      total_candidates: 50,
+    };
 
+    const result = await service.recordUpload(input);
+    expect(result).toEqual(mockDatasets[0]);
+    expect(mockDatasetRepo.create).toHaveBeenCalledWith(input);
+  });
+
+  it('should clear candidates via candidate repository', async () => {
+    await service.clearCandidates();
+    expect(mockCandidateRepo.deleteAll).toHaveBeenCalled();
+  });
+
+  it('should execute atomic dataset import via repository', async () => {
+    const input = {
+      dataset_name: 'candidates-2026.csv',
+      uploaded_by: 'Admin',
+      mode: 'replace' as const,
+      candidates: [
+        { full_name: 'Alice', email: 'alice@example.com' },
+      ],
+    };
+
+    const result = await service.importDatasetAtomic(input);
+    expect(result.success).toBe(true);
+    expect(result.dataset_id).toBe(1);
+    expect(mockDatasetRepo.importAtomic).toHaveBeenCalledWith(input);
+  });
+
+  it('should throw InternalServerErrorException if atomic import fails or rolls back', async () => {
+    mockDatasetRepo.importAtomic.mockRejectedValue(new Error('Transaction rolled back: invalid constraint'));
+    await expect(
+      service.importDatasetAtomic({
+        dataset_name: 'invalid.csv',
+        uploaded_by: null,
+        mode: 'replace',
+        candidates: [{ full_name: 'Alice', email: 'alice@example.com' }],
+      })
+    ).rejects.toThrow(InternalServerErrorException);
+  });
+
+  it('should throw InternalServerErrorException if getDatasets fails', async () => {
+    mockDatasetRepo.findAll.mockRejectedValue(new Error('DB read error'));
     await expect(service.getDatasets()).rejects.toThrow(InternalServerErrorException);
+  });
+
+  it('should throw InternalServerErrorException if recordUpload fails', async () => {
+    mockDatasetRepo.create.mockRejectedValue(new Error('DB insert error'));
+    await expect(
+      service.recordUpload({
+        dataset_name: 'candidates.csv',
+        uploaded_by: null,
+        mode: 'append',
+        total_candidates: 10,
+      })
+    ).rejects.toThrow(InternalServerErrorException);
+  });
+
+  it('should throw InternalServerErrorException if clearCandidates fails', async () => {
+    mockCandidateRepo.deleteAll.mockRejectedValue(new Error('DB delete error'));
+    await expect(service.clearCandidates()).rejects.toThrow(InternalServerErrorException);
   });
 });

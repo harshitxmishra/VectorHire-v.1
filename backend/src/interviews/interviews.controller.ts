@@ -6,6 +6,8 @@ import {
   Param,
   Body,
   ParseIntPipe,
+  Query,
+  BadRequestException,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -18,7 +20,14 @@ export class InterviewsController {
   constructor(private readonly interviewsService: InterviewsService) {}
 
   @Get()
-  async findAll() {
+  async findAll(@Query('candidateId') candidateId?: string) {
+    if (candidateId !== undefined) {
+      const parsedId = Number(candidateId);
+      if (!Number.isFinite(parsedId) || parsedId <= 0) {
+        throw new BadRequestException('Invalid candidateId. Must be a positive integer.');
+      }
+      return this.interviewsService.findByCandidateId(parsedId);
+    }
     return this.interviewsService.findAll();
   }
 

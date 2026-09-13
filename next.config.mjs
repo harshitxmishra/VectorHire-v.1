@@ -6,6 +6,7 @@ const __dirname = path.dirname(__filename);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   reactStrictMode: false,
   turbopack: {
     root: __dirname,
@@ -13,5 +14,3 @@ const nextConfig = {
 };
 
 export default nextConfig;
-
-
