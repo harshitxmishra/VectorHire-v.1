@@ -1,7 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { getRedisOptions, createRedisClient } from '../src/queue/redis.config';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import {
+  getRedisOptions,
+  createRedisClient,
+  calculateRedisReconnectDelay,
+  sanitizeRedisErrorMessage,
+} from '../src/queue/redis.config';
 
-describe('RedisConfig', () => {
+describe('RedisConfig Hardening (Phase 5.2)', () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
@@ -12,7 +17,7 @@ describe('RedisConfig', () => {
     process.env = { ...originalEnv };
   });
 
-  it('should return default Redis options when no environment variables are set', () => {
+  it('should return default plain Redis options when no environment variables are set', () => {
     delete process.env.REDIS_URL;
     delete process.env.REDIS_HOST;
     delete process.env.REDIS_PORT;
@@ -27,10 +32,33 @@ describe('RedisConfig', () => {
     expect(options.maxRetriesPerRequest).toBeNull();
     expect(options.enableReadyCheck).toBe(false);
     expect(options.lazyConnect).toBe(true);
+    expect(options.connectTimeout).toBe(10000);
+    expect(options.keepAlive).toBe(30000);
     expect(options.tls).toBeUndefined();
   });
 
-  it('should configure custom host, port, password, and tls from environment variables', () => {
+  it('should configure plain TCP connection from redis:// URL without TLS', () => {
+    process.env.REDIS_URL = 'redis://localhost:6379';
+
+    const options = getRedisOptions();
+
+    expect(options.tls).toBeUndefined();
+    expect(options.maxRetriesPerRequest).toBeNull();
+    expect(options.connectTimeout).toBe(10000);
+    expect(options.keepAlive).toBe(30000);
+  });
+
+  it('should configure TLS connection from rediss:// URL', () => {
+    process.env.REDIS_URL = 'rediss://default:mypassword@managed-redis.com:6380/0';
+
+    const options = getRedisOptions();
+
+    expect(options.tls).toBeDefined();
+    expect(options.tls).toEqual({});
+    expect(options.maxRetriesPerRequest).toBeNull();
+  });
+
+  it('should configure TLS when REDIS_TLS=true is set on host-based config', () => {
     delete process.env.REDIS_URL;
     process.env.REDIS_HOST = 'redis.internal.net';
     process.env.REDIS_PORT = '6380';
@@ -42,34 +70,34 @@ describe('RedisConfig', () => {
     expect(options.host).toBe('redis.internal.net');
     expect(options.port).toBe(6380);
     expect(options.password).toBe('super-secret-pw');
-    expect(options.maxRetriesPerRequest).toBeNull();
     expect(options.tls).toBeDefined();
+    expect(options.tls).toEqual({});
   });
 
-  it('should detect TLS from REDIS_URL when protocol is rediss://', () => {
-    process.env.REDIS_URL = 'rediss://:mypassword@redis-cluster.com:6380/0';
-
-    const options = getRedisOptions();
-
-    expect(options.maxRetriesPerRequest).toBeNull();
-    expect(options.tls).toBeDefined();
+  it('should apply linear-capped backoff for reconnects and stop after 20 attempts', () => {
+    expect(calculateRedisReconnectDelay(1)).toBe(100);
+    expect(calculateRedisReconnectDelay(10)).toBe(1000);
+    expect(calculateRedisReconnectDelay(20)).toBe(2000);
+    expect(calculateRedisReconnectDelay(21)).toBeNull(); // Reconnect storm bounded
+    expect(calculateRedisReconnectDelay(50)).toBeNull();
   });
 
-  it('should configure capped exponential backoff retryStrategy', () => {
-    const options = getRedisOptions();
-    expect(typeof options.retryStrategy).toBe('function');
+  it('should sanitize credentials from Redis error messages', () => {
+    const errorWithAuth = 'Connection to rediss://user:secretpassword123@redis-host.com:6380 failed: ECONNREFUSED';
+    const sanitized = sanitizeRedisErrorMessage(errorWithAuth);
 
-    if (options.retryStrategy) {
-      expect(options.retryStrategy(1)).toBe(100);
-      expect(options.retryStrategy(10)).toBe(1000);
-      expect(options.retryStrategy(50)).toBe(3000); // capped at 3000ms
-    }
+    expect(sanitized).not.toContain('secretpassword123');
+    expect(sanitized).not.toContain('user');
+    expect(sanitized).toContain('rediss://***@redis-host.com:6380');
+
+    const simpleError = 'Connection failed: ECONNRESET';
+    expect(sanitizeRedisErrorMessage(simpleError)).toBe('Connection failed: ECONNRESET');
+    expect(sanitizeRedisErrorMessage(undefined)).toBe('Unknown Redis connection error');
   });
 
   it('should create an ioredis client instance and register error handler', () => {
     const client = createRedisClient();
     expect(client).toBeDefined();
-    // Clean up
     client.quit().catch(() => {});
   });
 });

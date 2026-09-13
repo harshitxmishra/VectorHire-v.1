@@ -8,11 +8,34 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import helmet from 'helmet';
+import * as express from 'express';
 import { AppModule } from './app.module';
+import { setupProcessSafety } from './common/process/process-safety';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: false,
+  });
+
+  // Enable shutdown hooks for graceful termination (SIGTERM / SIGINT)
+  app.enableShutdownHooks();
+
+  // Setup process safety handlers for uncaughtException and unhandledRejection
+  setupProcessSafety(() => app);
+
+  // Apply Helmet HTTP security headers
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+    })
+  );
+
+  // Explicit body parsers: 1MB limit for standard JSON and URL-encoded bodies
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ limit: '1mb', extended: true }));
 
   // Set API versioning prefix
   app.setGlobalPrefix('api/v1');
@@ -48,7 +71,14 @@ async function bootstrap() {
       return callback(new Error(`CORS policy does not allow access from origin ${origin}`));
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-confirm-destructive', 'x-demo-user'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'x-confirm-destructive',
+      'x-demo-user',
+      'x-correlation-id',
+    ],
+    exposedHeaders: ['x-correlation-id'],
     credentials: true,
   });
 

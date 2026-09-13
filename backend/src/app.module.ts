@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { validateEnv } from './config/env.validation';
 import { AuthModule } from './auth/auth.module';
 import { SupabaseAuthGuard } from './auth/auth.guard';
 import { HealthModule } from './health/health.module';
@@ -23,7 +25,16 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['../.env.local', '../.env', '.env.local', '.env'],
+      validate: validateEnv,
     }),
+
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60000,
+        limit: 100, // 100 req/min default
+      },
+    ]),
     AuthModule,
     HealthModule,
     QueueModule,
@@ -39,6 +50,10 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     DatasetsModule,
   ],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
     {
       provide: APP_GUARD,
       useClass: SupabaseAuthGuard,
