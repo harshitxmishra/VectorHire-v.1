@@ -9,11 +9,13 @@ import { aiGenerateJSON } from '@/lib/ai/client';
 import { AISchema } from '@/lib/ai/types';
 import { JobMatchResult } from '@/lib/types';
 import { MatchCandidateJobDto } from './dto/match-candidate-job.dto';
+import { QueryJobMatchesDto } from './dto/query-job-matches.dto';
+import { BatchMatchDto } from './dto/batch-match.dto';
 import { JOB_MATCH_REPOSITORY } from './matching.constants';
 import { CANDIDATE_REPOSITORY } from '../candidates/candidates.constants';
 import { JOB_REPOSITORY } from '../jobs/jobs.constants';
 import { TIMELINE_REPOSITORY } from '../timeline/timeline.constants';
-import { JobMatchRepository } from '@/lib/repositories/job-match-repository';
+import { JobMatchRepository, PaginatedJobMatches } from '@/lib/repositories/job-match-repository';
 import { CandidateRepository } from '@/lib/repositories/candidate-repository';
 import { JobRepository } from '@/lib/repositories/job-repository';
 import { TimelineRepository } from '@/lib/repositories/timeline-repository';
@@ -65,6 +67,23 @@ export class MatchingService {
       return await this.jobMatchRepo.findByJobDescriptionId(jobDescriptionId);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to fetch job matches';
+      throw new InternalServerErrorException(message);
+    }
+  }
+
+  async getPaginatedMatchesForJD(
+    jobDescriptionId: number,
+    filters?: QueryJobMatchesDto
+  ): Promise<PaginatedJobMatches> {
+    const job = await this.jobRepo.findById(jobDescriptionId);
+    if (!job) {
+      throw new NotFoundException(`Job description with ID ${jobDescriptionId} not found.`);
+    }
+
+    try {
+      return await this.jobMatchRepo.findPaginatedByJobId(jobDescriptionId, filters);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch paginated job matches';
       throw new InternalServerErrorException(message);
     }
   }
@@ -137,5 +156,48 @@ Give a short experienceMatch and educationMatch assessment, and an overall recom
     });
 
     return parsed;
+  }
+
+  async batchEvaluateMatches(
+    jobDescriptionId: number,
+    dto: BatchMatchDto
+  ): Promise<{ evaluated: number; totalCandidates: number }> {
+    const jobDescription = await this.jobRepo.findById(jobDescriptionId);
+    if (!jobDescription) {
+      throw new NotFoundException(`Job description with ID ${jobDescriptionId} not found.`);
+    }
+
+    let candidateIdsToMatch: number[] = [];
+
+    if (dto.candidate_ids && dto.candidate_ids.length > 0) {
+      candidateIdsToMatch = dto.candidate_ids;
+    } else {
+      const allCandidates = await this.candidateRepo.findAll();
+      candidateIdsToMatch = allCandidates.map((c) => c.id);
+    }
+
+    if (!dto.force) {
+      const existingMatches = await this.jobMatchRepo.findByJobDescriptionId(jobDescriptionId);
+      const matchedSet = new Set(existingMatches.map((m) => m.candidate_id));
+      candidateIdsToMatch = candidateIdsToMatch.filter((id) => !matchedSet.has(id));
+    }
+
+    let evaluated = 0;
+    for (const candidateId of candidateIdsToMatch) {
+      try {
+        await this.evaluateCandidateMatch({
+          candidate_id: candidateId,
+          job_description_id: jobDescriptionId,
+        });
+        evaluated++;
+      } catch (err) {
+        // Continue processing batch even if single candidate fails
+      }
+    }
+
+    return {
+      evaluated,
+      totalCandidates: candidateIdsToMatch.length,
+    };
   }
 }

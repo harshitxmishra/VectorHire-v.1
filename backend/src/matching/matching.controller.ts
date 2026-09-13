@@ -12,7 +12,10 @@ import {
 import { SupabaseAuthGuard } from '../auth/auth.guard';
 import { MatchingService, MatchResult } from './matching.service';
 import { MatchCandidateJobDto } from './dto/match-candidate-job.dto';
+import { QueryJobMatchesDto } from './dto/query-job-matches.dto';
+import { BatchMatchDto } from './dto/batch-match.dto';
 import { JobMatchResult } from '@/lib/types';
+import { PaginatedJobMatches } from '@/lib/repositories/job-match-repository';
 
 @Controller('matching')
 @UseGuards(SupabaseAuthGuard)
@@ -43,6 +46,22 @@ export class MatchingController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<JobMatchResult[]> {
     return this.matchingService.getMatchesForJD(id);
+  }
+
+  @Get('jd/:id/paginated')
+  async getPaginatedMatchesForJD(
+    @Param('id', ParseIntPipe) id: number,
+    @Query() queryDto: QueryJobMatchesDto,
+  ): Promise<PaginatedJobMatches> {
+    return this.matchingService.getPaginatedMatchesForJD(id, queryDto);
+  }
+
+  @Post('jd/:id/run')
+  async runJobMatching(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: BatchMatchDto,
+  ): Promise<{ evaluated: number; totalCandidates: number }> {
+    return this.matchingService.batchEvaluateMatches(id, dto);
   }
 
   @Post('evaluate')

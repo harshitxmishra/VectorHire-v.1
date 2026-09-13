@@ -32,10 +32,36 @@ describe('MatchingController', () => {
     },
   ];
 
+  const mockPaginatedResult = {
+    matches: mockJobMatches,
+    total: 1,
+    page: 1,
+    limit: 25,
+    totalPages: 1,
+    candidateCount: 50,
+    totalMatchesForJob: 1,
+    metrics: {
+      totalMatches: 1,
+      highMatchCount: 1,
+      averageMatchScore: 92,
+    },
+  };
+
+  const mockBatchResult = {
+    jobDescriptionId: 1,
+    evaluatedCount: 5,
+    matchCount: 5,
+    results: [
+      { candidate_id: 5, matchPercentage: 92, recommendation: 'Proceed' },
+    ],
+  };
+
   const mockService = {
     getMatchesForJD: vi.fn().mockResolvedValue(mockJobMatches),
+    getPaginatedMatchesForJD: vi.fn().mockResolvedValue(mockPaginatedResult),
     getBestMatches: vi.fn().mockResolvedValue({ 5: 92 }),
     evaluateCandidateMatch: vi.fn().mockResolvedValue(mockMatchResult),
+    batchEvaluateMatches: vi.fn().mockResolvedValue(mockBatchResult),
   };
 
   beforeEach(() => {
@@ -69,10 +95,24 @@ describe('MatchingController', () => {
     expect(service.getMatchesForJD).toHaveBeenCalledWith(1);
   });
 
+  it('should get paginated matches with metrics (GET /api/v1/matching/jd/:id/paginated)', async () => {
+    const query = { page: 1, limit: 25, minScore: 80, sortBy: 'match_percentage' as const, sortOrder: 'desc' as const };
+    const result = await controller.getPaginatedMatchesForJD(1, query);
+    expect(result).toEqual(mockPaginatedResult);
+    expect(service.getPaginatedMatchesForJD).toHaveBeenCalledWith(1, query);
+  });
+
   it('should evaluate candidate match (POST /api/v1/matching/evaluate)', async () => {
     const dto = { candidate_id: 5, job_description_id: 1 };
     const result = await controller.evaluateMatch(dto);
     expect(result).toEqual(mockMatchResult);
     expect(service.evaluateCandidateMatch).toHaveBeenCalledWith(dto);
+  });
+
+  it('should batch evaluate matches for a JD (POST /api/v1/matching/jd/:id/run)', async () => {
+    const dto = { candidate_ids: [5, 6, 7], force: true };
+    const result = await controller.runJobMatching(1, dto);
+    expect(result).toEqual(mockBatchResult);
+    expect(service.batchEvaluateMatches).toHaveBeenCalledWith(1, dto);
   });
 });

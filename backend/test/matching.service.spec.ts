@@ -55,6 +55,7 @@ describe('MatchingService', () => {
 
     mockCandidateRepo = {
       findById: vi.fn().mockResolvedValue(mockCandidate),
+      findAll: vi.fn().mockResolvedValue([mockCandidate]),
     };
 
     mockJobRepo = {
@@ -140,5 +141,61 @@ describe('MatchingService', () => {
     const dto = { candidate_id: 5, job_description_id: 2 };
     await expect(service.evaluateCandidateMatch(dto)).rejects.toThrow(BadGatewayException);
     expect(mockJobMatchRepo.upsert).not.toHaveBeenCalled();
+  });
+
+  describe('getPaginatedMatchesForJD', () => {
+    it('should verify job existence and return paginated matches with metrics', async () => {
+      const mockPaginated = {
+        matches: [{ id: 1, candidate_id: 5, match_percentage: 92 }],
+        total: 1,
+        page: 1,
+        limit: 25,
+        totalPages: 1,
+        candidateCount: 20,
+        totalMatchesForJob: 1,
+        metrics: {
+          totalMatches: 1,
+          highMatchCount: 1,
+          averageMatchScore: 92,
+        },
+      };
+
+      mockJobMatchRepo.findPaginatedByJobId = vi.fn().mockResolvedValue(mockPaginated);
+
+      const query = { page: 1, limit: 25, minScore: 80 };
+      const result = await service.getPaginatedMatchesForJD(2, query);
+
+      expect(result).toEqual(mockPaginated);
+      expect(mockJobRepo.findById).toHaveBeenCalledWith(2);
+      expect(mockJobMatchRepo.findPaginatedByJobId).toHaveBeenCalledWith(2, query);
+    });
+
+    it('should throw NotFoundException if JD does not exist', async () => {
+      mockJobRepo.findById.mockResolvedValue(null);
+      await expect(service.getPaginatedMatchesForJD(999, {})).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('batchEvaluateMatches', () => {
+    it('should evaluate matching for specified candidate IDs', async () => {
+      (aiClient.aiGenerateJSON as any).mockResolvedValue(mockMatchResult);
+
+      const result = await service.batchEvaluateMatches(2, { candidate_ids: [5], force: true });
+
+      expect(result.evaluated).toBe(1);
+      expect(result.totalCandidates).toBe(1);
+    });
+
+    it('should skip candidates already matched when force is false', async () => {
+      const result = await service.batchEvaluateMatches(2, { candidate_ids: [5], force: false });
+
+      expect(result.evaluated).toBe(0);
+      expect(result.totalCandidates).toBe(0);
+    });
+
+    it('should throw NotFoundException if JD not found for batch matching', async () => {
+      mockJobRepo.findById.mockResolvedValue(null);
+      await expect(service.batchEvaluateMatches(999, {})).rejects.toThrow(NotFoundException);
+    });
   });
 });
