@@ -1,10 +1,21 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import type { Candidate, CollegeGroup, Interview, KPIData, ScoreBucket } from '@/lib/types';
+import type {
+  Candidate,
+  CollegeGroup,
+  Interview,
+  JobDescription,
+  KPIData,
+  ScoreBucket,
+  TimelineEvent,
+} from '@/lib/types';
 
 export interface AppData {
   candidates: Candidate[];
+  interviews: Interview[];
+  jobs: JobDescription[];
+  timelineEvents: TimelineEvent[];
   kpis: KPIData;
   collegeGroups: CollegeGroup[];
   scoreBuckets: ScoreBucket[];
@@ -12,6 +23,9 @@ export interface AppData {
 
 const EMPTY_DATA: AppData = {
   candidates: [],
+  interviews: [],
+  jobs: [],
+  timelineEvents: [],
   kpis: {
     totalCandidates: 0,
     shortlisted: 0,
@@ -31,21 +45,25 @@ const EMPTY_DATA: AppData = {
 };
 
 function isStatus(candidate: Candidate, status: string) {
-  return candidate.status?.toLowerCase() === status;
+  return candidate.status?.toLowerCase() === status.toLowerCase();
 }
 
 function computeKPIs(candidates: Candidate[], interviews: Interview[]): KPIData {
   const totalCandidates = candidates.length;
   const shortlisted = candidates.filter((c) => isStatus(c, 'shortlisted')).length;
-  const pendingReview = candidates.filter((c) => isStatus(c, 'pending')).length;
+  const pendingReview = candidates.filter((c) => {
+    const s = (c.status || '').toLowerCase();
+    return s === 'applied' || s === 'pending' || s === 'reviewing';
+  }).length;
   const averageAIScore = totalCandidates
     ? Math.round(candidates.reduce((sum, c) => sum + (c.ai_score ?? 0), 0) / totalCandidates)
     : 0;
-  const highScorers = candidates.filter((c) => (c.ai_score ?? 0) >= 85).length;
+  const highScorers = candidates.filter((c) => (c.ai_score ?? 0) >= 80).length;
 
   const collegeCounts: Record<string, number> = {};
   candidates.forEach((c) => {
-    collegeCounts[c.college] = (collegeCounts[c.college] ?? 0) + 1;
+    const college = c.college || 'Unspecified';
+    collegeCounts[college] = (collegeCounts[college] ?? 0) + 1;
   });
   const topCollege =
     Object.entries(collegeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? '—';
@@ -125,22 +143,34 @@ export function useAppData() {
     setError(null);
 
     try {
-      const [candidatesRes, interviewsRes] = await Promise.all([
+      const [candidatesRes, interviewsRes, jobsRes, timelineRes] = await Promise.all([
         fetch('/api/candidates'),
         fetch('/api/interviews'),
+        fetch('/api/job-descriptions'),
+        fetch('/api/timeline?limit=15'),
       ]);
-      const body = await candidatesRes.json();
-      const interviewsBody = await interviewsRes.json();
+
+      const [candidatesBody, interviewsBody, jobsBody, timelineBody] = await Promise.all([
+        candidatesRes.json(),
+        interviewsRes.json(),
+        jobsRes.json(),
+        timelineRes.json(),
+      ]);
 
       if (!candidatesRes.ok) {
-        throw new Error(body?.error ?? 'Failed to load candidates.');
+        throw new Error(candidatesBody?.error ?? 'Failed to load candidates.');
       }
 
-      const candidates: Candidate[] = body;
+      const candidates: Candidate[] = Array.isArray(candidatesBody) ? candidatesBody : [];
       const interviews: Interview[] = Array.isArray(interviewsBody) ? interviewsBody : [];
+      const jobs: JobDescription[] = Array.isArray(jobsBody) ? jobsBody : [];
+      const timelineEvents: TimelineEvent[] = Array.isArray(timelineBody) ? timelineBody : [];
 
       setData({
         candidates,
+        interviews,
+        jobs,
+        timelineEvents,
         kpis: computeKPIs(candidates, interviews),
         collegeGroups: computeCollegeGroups(candidates),
         scoreBuckets: computeScoreBuckets(candidates),
