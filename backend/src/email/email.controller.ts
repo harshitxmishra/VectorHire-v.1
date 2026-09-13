@@ -11,9 +11,12 @@ import {
   UseGuards,
   NotFoundException,
   ForbiddenException,
+  ParseIntPipe,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { SupabaseAuthGuard } from '../auth/auth.guard';
 import { QueueService } from '../queue/queue.service';
+import { EmailService } from './email.service';
 import { SendEmailDto } from './dto/send-email.dto';
 import { EmailJobStatusResponse } from '../queue/email/email.types';
 import { resolveCorrelationId } from '../common/utils/correlation-id.util';
@@ -27,8 +30,19 @@ export interface EnqueueEmailResponse {
 @Controller('emails')
 @UseGuards(SupabaseAuthGuard)
 export class EmailController {
-  constructor(private readonly queueService: QueueService) {}
+  constructor(
+    private readonly queueService: QueueService,
+    private readonly emailService: EmailService
+  ) {}
 
+  @Get('candidate/:candidateId')
+  async getLogsByCandidateId(
+    @Param('candidateId', ParseIntPipe) candidateId: number
+  ) {
+    return this.emailService.getLogsByCandidateId(candidateId);
+  }
+
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('send')
   @HttpCode(HttpStatus.ACCEPTED)
   async sendEmails(
@@ -60,6 +74,7 @@ export class EmailController {
     };
   }
 
+  @Throttle({ default: { limit: 120, ttl: 60000 } })
   @Get('jobs/:jobId')
   async getJobStatus(
     @Param('jobId') jobId: string,

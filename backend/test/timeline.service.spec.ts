@@ -45,4 +45,11 @@ describe('TimelineService (Application Layer)', () => {
     expect(result).toEqual(new Set([10, 20]));
     expect(timelineDomain.getDistinctCandidateIdsForEvent).toHaveBeenCalledWith('assessment_sent', mockRepository);
   });
+
+  it('findRecent() delegates to getRecentTimelineEvents()', async () => {
+    vi.spyOn(timelineDomain, 'getRecentTimelineEvents').mockResolvedValue([mockTimelineEvent]);
+    const result = await service.findRecent(15);
+    expect(result).toEqual([mockTimelineEvent]);
+    expect(timelineDomain.getRecentTimelineEvents).toHaveBeenCalledWith(15, mockRepository);
+  });
 });

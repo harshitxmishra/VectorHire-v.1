@@ -13,6 +13,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { SupabaseAuthGuard } from '../auth/auth.guard';
 import { DatasetsService } from './datasets.service';
@@ -45,6 +46,7 @@ export class DatasetsController {
     return this.datasetsService.getDatasets();
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('import')
   @HttpCode(HttpStatus.ACCEPTED)
   @UseInterceptors(

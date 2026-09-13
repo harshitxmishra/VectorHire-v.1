@@ -21,6 +21,7 @@ export type UpdateInterviewData = {
 export interface InterviewRepository {
   findAll(): Promise<Interview[]>;
   findById(id: number): Promise<Interview | null>;
+  findByCandidateId(candidateId: number): Promise<Interview[]>;
   create(data: CreateInterviewData): Promise<Interview>;
   updateStatus(id: number, status: 'completed' | 'cancelled'): Promise<Interview>;
   update(id: number, data: UpdateInterviewData): Promise<Interview>;

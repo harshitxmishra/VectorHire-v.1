@@ -256,4 +256,18 @@ export class StructuredLogger {
       errorCategory,
     });
   }
+
+  public logProcessFatal(params: {
+    event: string;
+    error: unknown;
+    errorCode?: string;
+  }): void {
+    const errorCategory = categorizeError(params.error);
+    this.logEvent({
+      event: params.event,
+      status: 'fatal',
+      errorCategory,
+      errorCode: params.errorCode,
+    });
+  }
 }

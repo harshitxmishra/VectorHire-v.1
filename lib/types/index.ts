@@ -155,5 +155,6 @@ export interface TimelineEvent {
   candidate_id: number;
   event_type: string;
   details: string | null;
+  candidates?: { full_name: string; email: string } | null;
 }
 

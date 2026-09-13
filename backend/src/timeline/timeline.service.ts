@@ -9,6 +9,7 @@ import {
   getTimeline,
   logTimelineEvent,
   getDistinctCandidateIdsForEvent,
+  getRecentTimelineEvents,
 } from '@/lib/services/timeline-service';
 import { TimelineEvent } from '@/lib/types';
 
@@ -37,6 +38,15 @@ export class TimelineService {
       return await getDistinctCandidateIdsForEvent(eventType, this.timelineRepository);
     } catch (error) {
       const message = error instanceof Error ? error.message : `Failed to fetch candidate IDs for event ${eventType}`;
+      throw new InternalServerErrorException(message);
+    }
+  }
+
+  async findRecent(limit: number = 20): Promise<TimelineEvent[]> {
+    try {
+      return await getRecentTimelineEvents(limit, this.timelineRepository);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch recent timeline events';
       throw new InternalServerErrorException(message);
     }
   }

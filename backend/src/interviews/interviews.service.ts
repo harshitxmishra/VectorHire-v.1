@@ -35,6 +35,22 @@ export class InterviewsService {
     }
   }
 
+  async findByCandidateId(candidateId: number): Promise<Interview[]> {
+    try {
+      const candidate = await this.candidateRepository.findById(candidateId);
+      if (!candidate) {
+        throw new NotFoundException(`Candidate with ID ${candidateId} not found.`);
+      }
+      return await this.interviewRepository.findByCandidateId(candidateId);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      const message = error instanceof Error ? error.message : `Failed to fetch interviews for candidate ${candidateId}`;
+      throw new InternalServerErrorException(message);
+    }
+  }
+
   async create(dto: CreateInterviewDto): Promise<Interview> {
     try {
       return await createInterview(dto, this.interviewRepository, this.candidateRepository);

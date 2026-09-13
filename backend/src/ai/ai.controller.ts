@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { SupabaseAuthGuard } from '../auth/auth.guard';
 import { AiService } from './ai.service';
 import { EvaluateCandidateDto } from './dto/evaluate-candidate.dto';
@@ -25,6 +26,7 @@ export class AiController {
     private readonly queueService: QueueService
   ) {}
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('evaluate')
   @HttpCode(HttpStatus.ACCEPTED)
   async evaluateCandidate(
@@ -59,6 +61,7 @@ export class AiController {
     };
   }
 
+  @Throttle({ default: { limit: 120, ttl: 60000 } })
   @Get('jobs/:jobId')
   async getJobStatus(@Param('jobId') jobId: string): Promise<JobStatusResponse> {
     const status = await this.queueService.getAiEvaluationJobStatus(jobId);

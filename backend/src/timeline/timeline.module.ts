@@ -1,12 +1,12 @@
 import { Module, Global } from '@nestjs/common';
-import { TimelineController } from './timeline.controller';
+import { TimelineController, TimelineFeedController } from './timeline.controller';
 import { TimelineService } from './timeline.service';
 import { TIMELINE_REPOSITORY } from './timeline.constants';
 import { SupabaseTimelineRepository } from '@/lib/repositories/supabase-timeline-repository';
 
 @Global()
 @Module({
-  controllers: [TimelineController],
+  controllers: [TimelineController, TimelineFeedController],
   providers: [
     TimelineService,
     {

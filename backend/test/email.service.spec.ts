@@ -21,9 +21,13 @@ describe('EmailService', () => {
       markAsSent: vi.fn(),
       markAsFailed: vi.fn(),
       findSentCandidateIds: vi.fn().mockResolvedValue([2]),
+      findByCandidateId: vi.fn().mockResolvedValue([
+        { id: 1, candidate_id: 1, email_type: 'assessment', status: 'sent' },
+      ]),
     };
 
     mockCandidateRepo = {
+      findById: vi.fn().mockResolvedValue({ id: 1, full_name: 'John Doe', email: 'john@example.com' }),
       findByIds: vi.fn().mockResolvedValue([
         { id: 1, full_name: 'John Doe', email: 'john@example.com' },
         { id: 2, full_name: 'Jane Smith', email: 'jane@example.com' },
@@ -36,6 +40,22 @@ describe('EmailService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('getLogsByCandidateId() delegates to EmailLogRepository when candidate exists', async () => {
+    const logs = await service.getLogsByCandidateId(1);
+    expect(logs).toEqual([
+      { id: 1, candidate_id: 1, email_type: 'assessment', status: 'sent' },
+    ]);
+    expect(mockCandidateRepo.findById).toHaveBeenCalledWith(1);
+    expect(mockEmailLogRepo.findByCandidateId).toHaveBeenCalledWith(1);
+  });
+
+  it('getLogsByCandidateId() throws NotFoundException when candidate does not exist', async () => {
+    mockCandidateRepo.findById.mockResolvedValue(null);
+    await expect(service.getLogsByCandidateId(999)).rejects.toThrow(
+      'Candidate with ID 999 not found.'
+    );
   });
 
   it('should send emails to eligible candidates and update status', async () => {

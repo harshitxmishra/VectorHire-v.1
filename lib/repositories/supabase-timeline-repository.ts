@@ -47,4 +47,17 @@ export class SupabaseTimelineRepository implements TimelineRepository {
     }
     return (data ?? []).map((row) => row.candidate_id);
   }
+
+  async findRecent(limit: number = 20): Promise<TimelineEvent[]> {
+    const { data, error } = await supabase
+      .from('candidate_timeline')
+      .select('*, candidates:candidate_id(full_name, email)')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      throw new Error(`Database error fetching recent timeline events: ${error.message}`);
+    }
+    return data ?? [];
+  }
 }

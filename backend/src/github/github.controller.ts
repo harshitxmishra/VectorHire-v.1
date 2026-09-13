@@ -11,6 +11,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { SupabaseAuthGuard } from '../auth/auth.guard';
 import { GithubService } from './github.service';
 import { AnalyzeGitHubDto } from './dto/analyze-github.dto';
@@ -28,6 +29,7 @@ export class GithubController {
     private readonly queueService: QueueService
   ) {}
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post()
   @HttpCode(HttpStatus.ACCEPTED)
   async analyze(
@@ -63,6 +65,7 @@ export class GithubController {
     };
   }
 
+  @Throttle({ default: { limit: 120, ttl: 60000 } })
   @Get('jobs/:jobId')
   async getJobStatus(@Param('jobId') jobId: string): Promise<GithubJobStatusResponse> {
     const status = await this.queueService.getGithubJobStatus(jobId);

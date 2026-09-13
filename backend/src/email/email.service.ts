@@ -2,6 +2,7 @@ import {
   Injectable,
   Inject,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { sendCandidateEmail, EmailType } from '@/lib/services/email-service';
 import { SendEmailDto } from './dto/send-email.dto';
@@ -35,6 +36,22 @@ export class EmailService {
     @Inject(CANDIDATE_REPOSITORY)
     private readonly candidateRepo: CandidateRepository,
   ) {}
+
+  async getLogsByCandidateId(candidateId: number) {
+    try {
+      const candidate = await this.candidateRepo.findById(candidateId);
+      if (!candidate) {
+        throw new NotFoundException(`Candidate with ID ${candidateId} not found.`);
+      }
+      return await this.emailLogRepo.findByCandidateId(candidateId);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      const message = error instanceof Error ? error.message : `Failed to fetch email logs for candidate ${candidateId}`;
+      throw new InternalServerErrorException(message);
+    }
+  }
 
   async sendEmails(dto: SendEmailDto): Promise<SendEmailResponse> {
     const {

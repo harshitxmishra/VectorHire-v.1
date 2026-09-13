@@ -10,6 +10,7 @@ import {
   HttpStatus,
   NotFoundException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { SupabaseAuthGuard } from '../auth/auth.guard';
 import { ResumeService } from './resume.service';
 import { QueueService } from '../queue/queue.service';
@@ -24,6 +25,7 @@ export class ResumeController {
     private readonly queueService: QueueService
   ) {}
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post(':id/parse-resume')
   @HttpCode(HttpStatus.ACCEPTED)
   async parseResume(
@@ -48,6 +50,7 @@ export class ResumeController {
     };
   }
 
+  @Throttle({ default: { limit: 120, ttl: 60000 } })
   @Get('jobs/:jobId')
   async getJobStatus(@Param('jobId') jobId: string): Promise<ResumeJobStatusResponse> {
     const status = await this.queueService.getResumeJobStatus(jobId);

@@ -16,6 +16,13 @@ export async function getInterviews(
   return repo.findAll();
 }
 
+export async function getInterviewsByCandidateId(
+  candidateId: number,
+  repo: InterviewRepository = defaultInterviewRepository
+): Promise<Interview[]> {
+  return repo.findByCandidateId(candidateId);
+}
+
 export interface CreateInterviewInput {
   candidate_id: number;
   interviewer_name: string;

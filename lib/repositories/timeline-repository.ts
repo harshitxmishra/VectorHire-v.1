@@ -10,4 +10,5 @@ export interface TimelineRepository {
   findByCandidateId(candidateId: number): Promise<TimelineEvent[]>;
   create(data: CreateTimelineEventData): Promise<TimelineEvent>;
   findDistinctCandidateIdsByEventType(eventType: string): Promise<number[]>;
+  findRecent?(limit?: number): Promise<TimelineEvent[]>;
 }

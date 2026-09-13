@@ -20,7 +20,16 @@ describe('EmailController', () => {
       getEmailJobStatus: vi.fn(),
     };
 
-    controller = new EmailController(mockQueueService as unknown as QueueService);
+    const mockEmailService = {
+      getLogsByCandidateId: vi.fn().mockResolvedValue([
+        { id: 1, candidate_id: 10, email_type: 'assessment', status: 'sent' },
+      ]),
+    };
+
+    controller = new EmailController(
+      mockQueueService as unknown as QueueService,
+      mockEmailService as any
+    );
   });
 
   it('should be defined', () => {
@@ -124,5 +133,12 @@ describe('EmailController', () => {
     await expect(controller.getJobStatus('missing-job', mockReq)).rejects.toThrow(
       NotFoundException
     );
+  });
+
+  it('should return email logs for candidate (GET /api/v1/emails/candidate/:candidateId)', async () => {
+    const result = await controller.getLogsByCandidateId(10);
+    expect(result).toEqual([
+      { id: 1, candidate_id: 10, email_type: 'assessment', status: 'sent' },
+    ]);
   });
 });

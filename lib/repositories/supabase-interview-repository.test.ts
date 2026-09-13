@@ -55,6 +55,22 @@ describe('SupabaseInterviewRepository', () => {
     expect(mockQuery.eq).toHaveBeenCalledWith('id', 1);
   });
 
+  it('should find interviews by candidate_id ordered by scheduled_date', async () => {
+    const mockQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [mockInterview], error: null }),
+    };
+    (supabase.from as any).mockReturnValue(mockQuery);
+
+    const result = await repository.findByCandidateId(10);
+    expect(result).toEqual([mockInterview]);
+    expect(supabase.from).toHaveBeenCalledWith('interviews');
+    expect(mockQuery.select).toHaveBeenCalledWith('*, candidates(full_name, email)');
+    expect(mockQuery.eq).toHaveBeenCalledWith('candidate_id', 10);
+    expect(mockQuery.order).toHaveBeenCalledWith('scheduled_date', { ascending: true });
+  });
+
   it('should create interview', async () => {
     const mockQuery = {
       insert: vi.fn().mockReturnThis(),

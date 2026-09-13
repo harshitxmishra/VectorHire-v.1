@@ -32,6 +32,19 @@ export class SupabaseInterviewRepository implements InterviewRepository {
     return data;
   }
 
+  async findByCandidateId(candidateId: number): Promise<Interview[]> {
+    const { data, error } = await supabase
+      .from('interviews')
+      .select('*, candidates(full_name, email)')
+      .eq('candidate_id', candidateId)
+      .order('scheduled_date', { ascending: true });
+
+    if (error) {
+      throw new Error(`Database error fetching interviews for candidate ${candidateId}: ${error.message}`);
+    }
+    return data ?? [];
+  }
+
   async create(input: CreateInterviewData): Promise<Interview> {
     const { data, error } = await supabase
       .from('interviews')

@@ -158,3 +158,10 @@ export async function sendCandidateEmail(
     return { status: 'failed', error: message };
   }
 }
+
+export async function getCandidateEmailLogs(
+  candidateId: number,
+  repo: EmailLogRepository = defaultEmailLogRepository
+) {
+  return repo.findByCandidateId(candidateId);
+}

@@ -37,3 +37,13 @@ export async function getDistinctCandidateIdsForEvent(
   const ids = await repo.findDistinctCandidateIdsByEventType(eventType);
   return new Set(ids);
 }
+
+export async function getRecentTimelineEvents(
+  limit: number = 20,
+  repo: TimelineRepository = defaultTimelineRepository
+): Promise<TimelineEvent[]> {
+  if (repo.findRecent) {
+    return repo.findRecent(limit);
+  }
+  return [];
+}

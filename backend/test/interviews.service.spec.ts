@@ -54,6 +54,24 @@ describe('InterviewsService (Application Layer)', () => {
     expect(interviewDomain.getInterviews).toHaveBeenCalledWith(mockInterviewRepo);
   });
 
+  it('findByCandidateId() returns candidate interviews when candidate exists', async () => {
+    (mockCandidateRepo.findById as any).mockResolvedValue({ id: 10, full_name: 'Alice' });
+    (mockInterviewRepo.findByCandidateId as any) = vi.fn().mockResolvedValue([mockInterview]);
+
+    const result = await service.findByCandidateId(10);
+    expect(result).toEqual([mockInterview]);
+    expect(mockCandidateRepo.findById).toHaveBeenCalledWith(10);
+    expect(mockInterviewRepo.findByCandidateId).toHaveBeenCalledWith(10);
+  });
+
+  it('findByCandidateId() throws NotFoundException when candidate does not exist', async () => {
+    (mockCandidateRepo.findById as any).mockResolvedValue(null);
+
+    await expect(service.findByCandidateId(999)).rejects.toThrow(
+      'Candidate with ID 999 not found.'
+    );
+  });
+
   it('create() delegates to createInterview()', async () => {
     vi.spyOn(interviewDomain, 'createInterview').mockResolvedValue(mockInterview);
     const dto = {

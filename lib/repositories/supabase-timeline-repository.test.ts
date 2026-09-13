@@ -74,6 +74,26 @@ describe('SupabaseTimelineRepository', () => {
     expect(mockQuery.eq).toHaveBeenCalledWith('event_type', 'assessment_sent');
   });
 
+  it('should find recent timeline events with candidate relation ordered descending', async () => {
+    const mockQuery = {
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({
+        data: [{ ...mockTimelineEvent, candidates: { full_name: 'Test Candidate', email: 'test@example.com' } }],
+        error: null,
+      }),
+    };
+    (supabase.from as any).mockReturnValue(mockQuery);
+
+    const result = await repository.findRecent(15);
+    expect(result).toHaveLength(1);
+    expect(result[0].candidates?.full_name).toBe('Test Candidate');
+    expect(supabase.from).toHaveBeenCalledWith('candidate_timeline');
+    expect(mockQuery.select).toHaveBeenCalledWith('*, candidates:candidate_id(full_name, email)');
+    expect(mockQuery.order).toHaveBeenCalledWith('created_at', { ascending: false });
+    expect(mockQuery.limit).toHaveBeenCalledWith(15);
+  });
+
   it('should throw error when database query fails', async () => {
     const mockQuery = {
       select: vi.fn().mockReturnThis(),
