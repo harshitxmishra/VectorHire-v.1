@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   ParseIntPipe,
   UseGuards,
   HttpCode,
@@ -14,6 +15,8 @@ import {
 import { CandidatesService } from './candidates.service';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
 import { UpdateCandidateStatusDto } from './dto/update-candidate-status.dto';
+import { QueryCandidatesDto } from './dto/query-candidates.dto';
+import { BulkUpdateCandidateStatusDto } from './dto/bulk-update-status.dto';
 import { DestructiveConfirmationGuard } from '../common/guards/destructive-confirmation.guard';
 
 @Controller('candidates')
@@ -21,7 +24,20 @@ export class CandidatesController {
   constructor(private readonly candidatesService: CandidatesService) {}
 
   @Get()
-  async findAll() {
+  async findAll(@Query() query?: QueryCandidatesDto) {
+    if (
+      query &&
+      (query.search ||
+        query.status ||
+        query.college ||
+        query.minScore !== undefined ||
+        query.maxScore !== undefined ||
+        query.sortBy ||
+        query.page ||
+        query.limit)
+    ) {
+      return this.candidatesService.findPaginated(query);
+    }
     return this.candidatesService.findAll();
   }
 
@@ -34,6 +50,11 @@ export class CandidatesController {
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createDto: CreateCandidateDto) {
     return this.candidatesService.create(createDto);
+  }
+
+  @Patch('bulk-status')
+  async bulkUpdateStatus(@Body() bulkDto: BulkUpdateCandidateStatusDto) {
+    return this.candidatesService.bulkUpdateStatus(bulkDto.candidateIds, bulkDto.status);
   }
 
   @Patch(':id')

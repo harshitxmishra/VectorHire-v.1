@@ -1,6 +1,5 @@
 import 'reflect-metadata';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Test, TestingModule } from '@nestjs/testing';
 import { CandidatesController } from '../src/candidates/candidates.controller';
 import { CandidatesService } from '../src/candidates/candidates.service';
 import { NotFoundException } from '@nestjs/common';
@@ -19,14 +18,24 @@ describe('CandidatesController', () => {
     ai_score: 85,
   };
 
+  const mockPaginated = {
+    candidates: [mockCandidate],
+    total: 1,
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+  };
+
   const mockService = {
     findAll: vi.fn().mockResolvedValue([mockCandidate]),
+    findPaginated: vi.fn().mockResolvedValue(mockPaginated),
     findOne: vi.fn().mockImplementation(async (id: number) => {
       if (id === 1) return mockCandidate;
       throw new NotFoundException(`Candidate with ID ${id} not found.`);
     }),
     create: vi.fn().mockResolvedValue(mockCandidate),
     updateStatus: vi.fn().mockResolvedValue({ ...mockCandidate, status: 'Shortlisted' }),
+    bulkUpdateStatus: vi.fn().mockResolvedValue({ updated: 1, candidates: [{ ...mockCandidate, status: 'Shortlisted' }] }),
     remove: vi.fn().mockResolvedValue({ success: true, message: 'Candidate 1 deleted.' }),
     removeAll: vi.fn().mockResolvedValue({ success: true, message: 'All candidate records purged successfully.' }),
   };
@@ -40,10 +49,22 @@ describe('CandidatesController', () => {
     expect(controller).toBeDefined();
   });
 
-  it('should list all candidates (GET /api/v1/candidates)', async () => {
+  it('should list all candidates when no query params are provided', async () => {
     const result = await controller.findAll();
     expect(result).toEqual([mockCandidate]);
     expect(service.findAll).toHaveBeenCalled();
+  });
+
+  it('should return paginated candidates when query parameters are supplied', async () => {
+    const queryDto: any = {
+      search: 'John',
+      status: 'Applied',
+      page: 1,
+      limit: 20,
+    };
+    const result = await controller.findAll(queryDto);
+    expect(result).toEqual(mockPaginated);
+    expect(service.findPaginated).toHaveBeenCalledWith(queryDto);
   });
 
   it('should return single candidate by ID (GET /api/v1/candidates/:id)', async () => {
@@ -72,6 +93,19 @@ describe('CandidatesController', () => {
     const result = await controller.updateStatus(1, { status: 'Shortlisted' });
     expect(result.status).toBe('Shortlisted');
     expect(service.updateStatus).toHaveBeenCalledWith(1, 'Shortlisted');
+  });
+
+  it('should bulk update candidate statuses (PATCH /api/v1/candidates/bulk-status)', async () => {
+    const bulkDto: any = {
+      candidateIds: [1],
+      status: 'Shortlisted',
+    };
+    const result = await controller.bulkUpdateStatus(bulkDto);
+    expect(result).toEqual({
+      updated: 1,
+      candidates: [{ ...mockCandidate, status: 'Shortlisted' }],
+    });
+    expect(service.bulkUpdateStatus).toHaveBeenCalledWith([1], 'Shortlisted');
   });
 
   it('should remove candidate by ID (DELETE /api/v1/candidates/:id)', async () => {
