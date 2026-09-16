@@ -68,7 +68,7 @@ describe('Phase 6.5 Recruiter Dashboard & Aggregation Integration', () => {
       id: 101,
       candidate_id: 3,
       interviewer_name: 'Senior Lead',
-      scheduled_date: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now
+      scheduled_date: new Date().toISOString(), // Today
       duration_minutes: 45,
       status: 'scheduled',
       calendar_event_id: 'cal-101',

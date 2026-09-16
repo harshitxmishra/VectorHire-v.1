@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useState, useMemo } from 'react';
+import { Suspense, useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { MainLayout } from '@/components/layout/main-layout';
@@ -45,6 +45,7 @@ import { DatasetManagerDialog } from '@/components/candidates/DatasetManagerDial
 import { ShortlistDialog } from '@/components/candidates/ShortlistDialog';
 import { CandidateKanban } from '@/components/candidates/CandidateKanban';
 import { useAppToast } from '@/lib/hooks/use-app-toast';
+import { safeParseApiResponse } from '@/lib/utils/api-client';
 import {
   Candidate,
   AIEvaluationResult,
@@ -53,7 +54,11 @@ import {
   GitHubIntelligence,
   PIPELINE_STAGES,
 } from '@/lib/types';
-import { CandidateSortField, CandidateSortOrder } from '@/lib/repositories/candidate-repository';
+import {
+  PaginatedCandidates,
+  CandidateSortField,
+  CandidateSortOrder,
+} from '@/lib/repositories/candidate-repository';
 
 const useStyles = makeStyles({
   container: {
@@ -217,6 +222,11 @@ function CandidatesContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const notify = useAppToast();
+  const notifyRef = useRef(notify);
+
+  useEffect(() => {
+    notifyRef.current = notify;
+  }, [notify]);
 
   // Read URL query parameters
   const urlSearch = searchParams.get('search') ?? '';
@@ -234,6 +244,7 @@ function CandidatesContent() {
   const [totalPages, setTotalPages] = useState<number>(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshIndex, setRefreshIndex] = useState(0);
 
   const [searchInput, setSearchInput] = useState(urlSearch);
   const [datasetManagerOpen, setDatasetManagerOpen] = useState(false);
@@ -257,6 +268,11 @@ function CandidatesContent() {
   const [githubIntel, setGithubIntel] = useState<Record<number, GitHubIntelligence>>({});
   const [githubLoading, setGithubLoading] = useState<Record<number, boolean>>({});
 
+  // Manual refresh trigger
+  const triggerRefresh = useCallback(() => {
+    setRefreshIndex((prev) => prev + 1);
+  }, []);
+
   // Sync search input if URL changes externally
   useEffect(() => {
     setSearchInput(urlSearch);
@@ -279,7 +295,13 @@ function CandidatesContent() {
         params.delete('page');
       }
 
-      router.push(`${pathname}?${params.toString()}`);
+      const queryString = params.toString();
+      const newUrl = queryString ? `${pathname}?${queryString}` : pathname;
+      const currentUrl = searchParams.toString() ? `${pathname}?${searchParams.toString()}` : pathname;
+
+      if (newUrl !== currentUrl) {
+        router.push(newUrl);
+      }
     },
     [router, pathname, searchParams]
   );
@@ -294,67 +316,81 @@ function CandidatesContent() {
     return () => clearTimeout(timer);
   }, [searchInput, urlSearch, updateQueryParams]);
 
-  // Fetch paginated candidates
-  const loadCandidates = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams();
-      if (urlSearch) params.set('search', urlSearch);
-      if (urlStatus && urlStatus !== 'all') params.set('status', urlStatus);
-      if (urlCollege && urlCollege !== 'all') params.set('college', urlCollege);
-      if (urlMinScore > 0) params.set('minScore', String(urlMinScore));
-      if (urlSortBy) params.set('sortBy', urlSortBy);
-      if (urlSortOrder) params.set('sortOrder', urlSortOrder);
-      params.set('page', String(urlPage));
-      params.set('limit', String(urlLimit));
+  // Authoritative candidate fetching effect with stale request protection
+  useEffect(() => {
+    let isCancelled = false;
 
-      const res = await fetch(`/api/candidates?${params.toString()}`);
-      if (!res.ok) {
-        throw new Error(`Failed to load candidates (${res.status})`);
+    async function fetchCandidates() {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams();
+        if (urlSearch) params.set('search', urlSearch);
+        if (urlStatus && urlStatus !== 'all') params.set('status', urlStatus);
+        if (urlCollege && urlCollege !== 'all') params.set('college', urlCollege);
+        if (urlMinScore > 0) params.set('minScore', String(urlMinScore));
+        if (urlSortBy) params.set('sortBy', urlSortBy);
+        if (urlSortOrder) params.set('sortOrder', urlSortOrder);
+        params.set('page', String(urlPage));
+        params.set('limit', String(urlLimit));
+
+        const res = await fetch(`/api/candidates?${params.toString()}`);
+        const body = await safeParseApiResponse<PaginatedCandidates | Candidate[]>(res);
+
+        if (isCancelled) return;
+
+        if (body && typeof body === 'object' && 'candidates' in body && Array.isArray(body.candidates)) {
+          setCandidates(body.candidates);
+          setTotalCount(body.total ?? body.candidates.length);
+          setTotalPages(body.totalPages ?? 1);
+        } else if (Array.isArray(body)) {
+          setCandidates(body);
+          setTotalCount(body.length);
+          setTotalPages(1);
+        } else {
+          setCandidates([]);
+          setTotalCount(0);
+          setTotalPages(1);
+        }
+        setSelectedIds(new Set());
+      } catch (err) {
+        if (isCancelled) return;
+        const msg = err instanceof Error ? err.message : 'Error fetching candidates';
+        setError(msg);
+        notifyRef.current(msg, 'error');
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
+    }
 
-      const body = await res.json();
-      if (body && Array.isArray(body.candidates)) {
-        setCandidates(body.candidates);
-        setTotalCount(body.total ?? body.candidates.length);
-        setTotalPages(body.totalPages ?? 1);
-      } else if (Array.isArray(body)) {
-        setCandidates(body);
-        setTotalCount(body.length);
-        setTotalPages(1);
-      } else {
-        setCandidates([]);
-        setTotalCount(0);
-        setTotalPages(1);
+    fetchCandidates();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [urlSearch, urlStatus, urlCollege, urlMinScore, urlSortBy, urlSortOrder, urlPage, urlLimit, refreshIndex]);
+
+  // Fetch job descriptions once on mount
+  useEffect(() => {
+    let isCancelled = false;
+    async function fetchJobDescriptions() {
+      try {
+        const res = await fetch('/api/job-descriptions');
+        const body = await safeParseApiResponse<JobDescription[]>(res);
+        if (!isCancelled) {
+          setJobDescriptions(Array.isArray(body) ? body : []);
+        }
+      } catch (err) {
+        console.error('Failed to load job descriptions:', err);
       }
-      setSelectedIds(new Set());
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Error fetching candidates';
-      setError(msg);
-      notify(msg, 'error');
-    } finally {
-      setLoading(false);
     }
-  }, [urlSearch, urlStatus, urlCollege, urlMinScore, urlSortBy, urlSortOrder, urlPage, urlLimit, notify]);
-
-  const loadJobDescriptions = useCallback(async () => {
-    try {
-      const res = await fetch('/api/job-descriptions');
-      const body = await res.json();
-      setJobDescriptions(Array.isArray(body) ? body : []);
-    } catch (err) {
-      console.error(err);
-    }
+    fetchJobDescriptions();
+    return () => {
+      isCancelled = true;
+    };
   }, []);
-
-  useEffect(() => {
-    loadCandidates();
-  }, [loadCandidates]);
-
-  useEffect(() => {
-    loadJobDescriptions();
-  }, [loadJobDescriptions]);
 
   // Single candidate status change
   const handleStatusChange = async (candidate: Candidate, newStatus: string) => {
@@ -364,23 +400,20 @@ function CandidatesContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
-      if (!res.ok) {
-        const body = await res.json();
-        throw new Error(body.error ?? 'Failed to update status.');
-      }
+      const updated = await safeParseApiResponse<Candidate>(res);
       setCandidates((prev) =>
-        prev.map((c) => (c.id === candidate.id ? { ...c, status: newStatus } : c))
+        prev.map((c) => (c.id === candidate.id ? { ...c, status: updated.status || newStatus } : c))
       );
-      notify(`${candidate.full_name} moved to ${newStatus}`, 'success');
+      notifyRef.current(`${candidate.full_name} moved to ${newStatus}`, 'success');
     } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to update status.', 'error');
+      notifyRef.current(err instanceof Error ? err.message : 'Failed to update status.', 'error');
     }
   };
 
   // Bulk status change (strictly scoped to status change & clear)
   const handleBulkStatusChange = async () => {
     if (selectedIds.size === 0) {
-      notify('Select at least one candidate first.', 'error');
+      notifyRef.current('Select at least one candidate first.', 'error');
       return;
     }
     setBulkUpdating(true);
@@ -393,16 +426,13 @@ function CandidatesContent() {
           status: bulkStatus,
         }),
       });
-      const body = await res.json();
-      if (!res.ok) {
-        throw new Error(body.error ?? 'Failed to perform bulk status update.');
-      }
+      const body = await safeParseApiResponse<{ updated: number; candidates: Candidate[] }>(res);
 
-      notify(`Updated ${body.updated ?? selectedIds.size} candidates to ${bulkStatus}`, 'success');
+      notifyRef.current(`Updated ${body.updated ?? selectedIds.size} candidates to ${bulkStatus}`, 'success');
       setSelectedIds(new Set());
-      await loadCandidates();
+      triggerRefresh();
     } catch (err) {
-      notify(err instanceof Error ? err.message : 'Bulk status update failed.', 'error');
+      notifyRef.current(err instanceof Error ? err.message : 'Bulk status update failed.', 'error');
     } finally {
       setBulkUpdating(false);
     }
@@ -473,7 +503,7 @@ function CandidatesContent() {
             <Button
               appearance="subtle"
               icon={<ArrowSyncRegular />}
-              onClick={() => loadCandidates()}
+              onClick={triggerRefresh}
             >
               Refresh
             </Button>
@@ -617,7 +647,7 @@ function CandidatesContent() {
               <div className={styles.emptyState}>
                 <Title2 style={{ color: '#f87171' }}>Error Loading Candidates</Title2>
                 <Body2>{error}</Body2>
-                <Button appearance="primary" onClick={() => loadCandidates()}>
+                <Button appearance="primary" onClick={triggerRefresh}>
                   Retry Query
                 </Button>
               </div>
@@ -797,7 +827,7 @@ function CandidatesContent() {
         <DatasetManagerDialog
           open={datasetManagerOpen}
           onClose={() => setDatasetManagerOpen(false)}
-          onImported={loadCandidates}
+          onImported={triggerRefresh}
         />
 
         {/* Quick Insights Drawer */}
