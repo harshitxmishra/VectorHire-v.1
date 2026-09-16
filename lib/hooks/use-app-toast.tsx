@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback } from 'react';
 import {
   useToastController,
   Toast,
@@ -11,7 +12,10 @@ export const APP_TOASTER_ID = 'vectorhire-toaster';
 export function useAppToast() {
   const { dispatchToast } = useToastController(APP_TOASTER_ID);
 
-  return (title: string, intent: 'success' | 'error' | 'info' = 'info') => {
-    dispatchToast(<Toast><ToastTitle>{title}</ToastTitle></Toast>, { intent, timeout: 4000 });
-  };
+  return useCallback(
+    (title: string, intent: 'success' | 'error' | 'info' = 'info') => {
+      dispatchToast(<Toast><ToastTitle>{title}</ToastTitle></Toast>, { intent, timeout: 4000 });
+    },
+    [dispatchToast]
+  );
 }
