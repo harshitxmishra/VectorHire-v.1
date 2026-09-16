@@ -58,6 +58,7 @@ import {
   EmailLog,
   PIPELINE_STAGES,
 } from '@/lib/types';
+import { safeParseApiResponse } from '@/lib/utils/api-client';
 
 const useStyles = makeStyles({
   container: {
@@ -276,13 +277,7 @@ function CandidateDetailContent() {
     setError(null);
     try {
       const res = await fetch(`/api/candidates/${candidateId}`);
-      if (!res.ok) {
-        if (res.status === 404) {
-          throw new Error(`Candidate with ID ${candidateId} was not found.`);
-        }
-        throw new Error(`Failed to load candidate profile (${res.status})`);
-      }
-      const data: Candidate = await res.json();
+      const data = await safeParseApiResponse<Candidate>(res);
       setCandidate(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error loading candidate');
@@ -296,7 +291,7 @@ function CandidateDetailContent() {
     try {
       const res = await fetch(`/api/candidates/${candidateId}/timeline`);
       if (res.ok) {
-        const events: TimelineEvent[] = await res.json();
+        const events = await safeParseApiResponse<TimelineEvent[]>(res);
         setTimeline(Array.isArray(events) ? events : []);
       }
     } catch {
@@ -309,7 +304,7 @@ function CandidateDetailContent() {
     try {
       const res = await fetch(`/api/interviews?candidateId=${candidateId}`);
       if (res.ok) {
-        const data: Interview[] = await res.json();
+        const data = await safeParseApiResponse<Interview[]>(res);
         setInterviews(Array.isArray(data) ? data : []);
       }
     } catch {
@@ -322,7 +317,7 @@ function CandidateDetailContent() {
     try {
       const res = await fetch(`/api/candidates/${candidateId}/emails`);
       if (res.ok) {
-        const data: EmailLog[] = await res.json();
+        const data = await safeParseApiResponse<EmailLog[]>(res);
         setEmailLogs(Array.isArray(data) ? data : []);
       }
     } catch {
@@ -353,11 +348,7 @@ function CandidateDetailContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
-      if (!res.ok) {
-        const body = await res.json();
-        throw new Error(body.error ?? 'Failed to update candidate status.');
-      }
-      const updated: Candidate = await res.json();
+      const updated = await safeParseApiResponse<Candidate>(res);
       setCandidate(updated);
       notify(`Status updated to ${newStatus}`, 'success');
       loadTimeline();
@@ -388,8 +379,12 @@ function CandidateDetailContent() {
         }),
       });
 
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? 'Evaluation request failed');
+      const body = await safeParseApiResponse<{
+        status?: string;
+        result?: unknown;
+        jobId?: string;
+        error?: string;
+      }>(res);
 
       if (body.status === 'completed' && body.result) {
         setAiJobState('completed');
@@ -410,7 +405,10 @@ function CandidateDetailContent() {
 
           const pollRes = await fetch(`/api/v1/ai/jobs/${body.jobId}`);
           if (pollRes.ok) {
-            const pollData = await pollRes.json();
+            const pollData = await safeParseApiResponse<{
+              state?: string;
+              error?: string;
+            }>(pollRes);
             if (pollData.state === 'completed') {
               finished = true;
               setAiJobState('completed');
@@ -448,8 +446,7 @@ function CandidateDetailContent() {
       const res = await fetch(`/api/v1/candidates/${candidate.id}/parse-resume`, {
         method: 'POST',
       });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? 'Resume parsing request failed');
+      const body = await safeParseApiResponse<{ jobId?: string; error?: string }>(res);
 
       if (body.jobId) {
         setResumeJobState('processing');
@@ -463,7 +460,7 @@ function CandidateDetailContent() {
 
           const pollRes = await fetch(`/api/v1/resume/jobs/${body.jobId}`);
           if (pollRes.ok) {
-            const pollData = await pollRes.json();
+            const pollData = await safeParseApiResponse<{ state?: string; error?: string }>(pollRes);
             if (pollData.state === 'completed') {
               finished = true;
               setResumeJobState('completed');
@@ -498,8 +495,7 @@ function CandidateDetailContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ force }),
       });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? 'GitHub analysis request failed');
+      const body = await safeParseApiResponse<{ jobId?: string; error?: string }>(res);
 
       if (body.jobId) {
         setGithubJobState('processing');
@@ -513,7 +509,7 @@ function CandidateDetailContent() {
 
           const pollRes = await fetch(`/api/v1/github/jobs/${body.jobId}`);
           if (pollRes.ok) {
-            const pollData = await pollRes.json();
+            const pollData = await safeParseApiResponse<{ state?: string; error?: string }>(pollRes);
             if (pollData.state === 'completed') {
               finished = true;
               setGithubJobState('completed');
@@ -533,17 +529,17 @@ function CandidateDetailContent() {
     }
   };
 
-  // Synchronous Interview Scheduling
+  // Interview modal scheduling
   const handleCreateInterview = async () => {
-    if (!candidate || !scheduleInterviewer.trim() || !scheduleDate) {
-      notify('Interviewer name and date are required.', 'error');
-      return;
-    }
-
-    setSavingInterview(true);
     const [hours, minutes] = scheduleTime.split(':').map(Number);
     const scheduledDateTime = new Date(scheduleDate);
     scheduledDateTime.setHours(hours || 10, minutes || 0, 0, 0);
+
+    if (!candidate || !scheduleInterviewer.trim() || !scheduledDateTime) {
+      notify('Interviewer name and valid date/time are required', 'error');
+      return;
+    }
+    setSavingInterview(true);
 
     try {
       const res = await fetch('/api/interviews', {
@@ -557,10 +553,7 @@ function CandidateDetailContent() {
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error ?? 'Failed to schedule interview.');
-      }
+      await safeParseApiResponse(res);
 
       notify('Interview scheduled successfully', 'success');
       setScheduleModalOpen(false);
@@ -580,10 +573,7 @@ function CandidateDetailContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error ?? 'Failed to update interview status.');
-      }
+      await safeParseApiResponse(res);
       notify(`Interview marked as ${newStatus}`, 'success');
       await Promise.all([loadCandidate(), loadInterviews(), loadTimeline()]);
     } catch (err) {
@@ -612,8 +602,7 @@ function CandidateDetailContent() {
         }),
       });
 
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? 'Failed to dispatch email');
+      await safeParseApiResponse(res);
 
       notify('Assessment email dispatched', 'success');
       setAssessmentModalOpen(false);
@@ -645,8 +634,7 @@ function CandidateDetailContent() {
         }),
       });
 
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? 'Failed to dispatch offer email');
+      await safeParseApiResponse(res);
 
       notify('Offer email dispatched successfully', 'success');
       setOfferModalOpen(false);

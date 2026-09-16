@@ -23,6 +23,7 @@ import { ArrowUploadRegular, DeleteRegular, ArrowDownloadRegular } from '@fluent
 import Papa from 'papaparse';
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { DatasetUpload } from '@/lib/types';
+import { safeParseApiResponse } from '@/lib/utils/api-client';
 
 const useStyles = makeStyles({
   section: {
@@ -98,8 +99,10 @@ export function DatasetManagerDialog({ open, onClose, onImported }: DatasetManag
   const loadHistory = useCallback(async () => {
     try {
       const res = await fetch('/api/v1/datasets');
-      const body = await res.json();
-      if (res.ok) setHistory(body);
+      if (res.ok) {
+        const body = await safeParseApiResponse<DatasetUpload[]>(res);
+        if (Array.isArray(body)) setHistory(body);
+      }
     } catch {
       // non-fatal
     }
@@ -144,12 +147,17 @@ export function DatasetManagerDialog({ open, onClose, onImported }: DatasetManag
       formData.append('datasetName', datasetName || file.name);
       formData.append('uploadedBy', uploadedBy);
 
+      // Route through NestJS BullMQ async dataset import
       const res = await fetch('/api/v1/datasets/import', { method: 'POST', body: formData });
-      const body = await res.json();
+      const body = await safeParseApiResponse<{
+        success?: boolean;
+        inserted?: number;
+        status?: string;
+        jobId?: string;
+        error?: string;
+      }>(res);
 
-      if (!res.ok) throw new Error(body.error ?? 'Import failed.');
-
-      let insertedCount = body.inserted;
+      let insertedCount = body.inserted ?? 0;
       let finalMode = mode;
 
       if (body.status === 'queued' && body.jobId) {
@@ -163,7 +171,11 @@ export function DatasetManagerDialog({ open, onClose, onImported }: DatasetManag
 
           const pollRes = await fetch(`/api/v1/datasets/jobs/${body.jobId}`);
           if (!pollRes.ok) continue;
-          const pollData = await pollRes.json();
+          const pollData = await safeParseApiResponse<{
+            state?: string;
+            error?: string;
+            result?: { totalCandidates?: number; mode?: 'append' | 'replace' };
+          }>(pollRes);
 
           if (pollData.state === 'completed') {
             insertedCount = pollData.result?.totalCandidates ?? 0;
@@ -204,11 +216,9 @@ export function DatasetManagerDialog({ open, onClose, onImported }: DatasetManag
       formData.append('file', selected);
 
       const res = await fetch('/api/candidates/import-test-results', { method: 'POST', body: formData });
-      const body = await res.json();
+      const body = await safeParseApiResponse<{ matched?: number }>(res);
 
-      if (!res.ok) throw new Error(body.error ?? 'Test result import failed.');
-
-      setSuccess(`Matched test results for ${body.matched} candidates.`);
+      setSuccess(`Matched test results for ${body.matched ?? 0} candidates.`);
       onImported();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Test result import failed.');
@@ -229,8 +239,7 @@ export function DatasetManagerDialog({ open, onClose, onImported }: DatasetManag
           'x-confirm-destructive': 'true',
         },
       });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? 'Delete failed.');
+      await safeParseApiResponse(res);
 
       setSuccess('All candidates deleted.');
       onImported();

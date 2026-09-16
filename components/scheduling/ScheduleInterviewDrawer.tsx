@@ -15,6 +15,7 @@ import {
 } from '@fluentui/react-components';
 import { useState } from 'react';
 import { Candidate } from '@/lib/types';
+import { safeParseApiResponse } from '@/lib/utils/api-client';
 
 const useStyles = makeStyles({
   body: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL, paddingTop: tokens.spacingVerticalL },
@@ -66,8 +67,7 @@ export function ScheduleInterviewDrawer({
           duration_minutes: duration,
         }),
       });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? 'Failed to schedule interview.');
+      await safeParseApiResponse(res);
 
       onScheduled();
       onClose();
