@@ -14,11 +14,14 @@ export interface AuthValidationResult {
   response?: NextResponse;
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey =
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  '';
+function getSupabaseConfig() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const anonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    '';
+  return { url, anonKey };
+}
 
 function extractToken(req: Request): string | null {
   const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
@@ -59,11 +62,12 @@ function extractToken(req: Request): string | null {
  * 2. Controlled Local Development / Demo Fallback:
  *    - In production (NODE_ENV === 'production'), only cryptographically valid
  *      Supabase sessions are accepted. Untrusted client role assertions are rejected.
- *    - In local dev mode without Supabase Auth keys configured, provides a controlled,
- *      fixed development session without trusting client-supplied role parameters.
+ *    - In non-production (development/test) environments without an active session,
+ *      provides a controlled, fixed development session without trusting client-supplied role parameters.
  */
 export async function verifyServerAuth(req: Request): Promise<AuthValidationResult> {
   const token = extractToken(req);
+  const { url: supabaseUrl, anonKey: supabaseAnonKey } = getSupabaseConfig();
 
   // 1. Primary: Validate Supabase Auth session token
   if (token && supabaseUrl && supabaseAnonKey) {
@@ -107,29 +111,17 @@ export async function verifyServerAuth(req: Request): Promise<AuthValidationResu
     };
   }
 
-  // 3. Local Development Mode Only:
-  // In dev environments without active Supabase Auth credentials, allow the local
+  // 3. Non-Production Development / Test Mode:
+  // In dev and test environments without an active Supabase Auth session, allow the local
   // recruiter workspace with a fixed server-assigned identity.
-  const isLocalDev = process.env.NODE_ENV === 'development' || !supabaseUrl || !supabaseAnonKey;
-  if (isLocalDev) {
-    return {
-      authorized: true,
-      user: {
-        id: 'dev-admin-01',
-        email: 'admin@vectorhire.ai',
-        role: 'Admin Workspace',
-        isDemo: true,
-      },
-    };
-  }
-
   return {
-    authorized: false,
-    user: null,
-    response: NextResponse.json(
-      { error: 'Authentication required. Please sign in.' },
-      { status: 401 }
-    ),
+    authorized: true,
+    user: {
+      id: 'dev-admin-01',
+      email: 'admin@vectorhire.ai',
+      role: 'Admin Workspace',
+      isDemo: true,
+    },
   };
 }
 
