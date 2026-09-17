@@ -40,8 +40,7 @@ const useStyles = makeStyles({
     alignItems: 'center',
     justifyContent: 'space-between',
     minHeight: '76px',
-    backgroundColor: 'rgba(8, 15, 30, 0.82)',
-    backdropFilter: 'blur(20px)',
+    backgroundColor: tokens.colorNeutralBackground1,
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
     paddingLeft: tokens.spacingHorizontalXL,
     paddingRight: tokens.spacingHorizontalXL,
@@ -97,13 +96,13 @@ const useStyles = makeStyles({
     height: '38px',
     borderRadius: tokens.borderRadiusMedium,
     ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
-    backgroundColor: 'rgba(15, 23, 42, 0.84)',
+    backgroundColor: tokens.colorNeutralBackground2,
     color: tokens.colorNeutralForeground2,
     transition: `all ${tokens.durationNormal} ${tokens.curveEasyEase}`,
     ':hover': {
       color: tokens.colorNeutralForeground1,
       ...shorthands.borderColor(tokens.colorNeutralStroke1),
-      backgroundColor: 'rgba(21, 32, 51, 0.96)',
+      backgroundColor: tokens.colorNeutralBackground2Hover,
     },
   },
   profileTrigger: {
@@ -120,7 +119,7 @@ const useStyles = makeStyles({
     cursor: 'pointer',
     transition: `all ${tokens.durationFast}`,
     ':hover': {
-      backgroundColor: 'rgba(30, 41, 59, 0.6)',
+      backgroundColor: tokens.colorNeutralBackground2Hover,
       ...shorthands.borderColor(tokens.colorNeutralStroke2),
     },
   },
@@ -129,11 +128,6 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     alignItems: 'flex-start',
     gap: '2px',
-  },
-  actionBadge: {
-    backgroundColor: 'rgba(99, 102, 241, 0.14)',
-    color: '#a5b4fc',
-    ...shorthands.borderColor('rgba(129, 140, 248, 0.25)'),
   },
   popoverCard: {
     padding: tokens.spacingVerticalM,
@@ -185,10 +179,6 @@ export function Navbar() {
       </div>
 
       <div className={styles.rightSection}>
-        <Badge appearance="outline" icon={<Sparkle24Regular />} className={styles.actionBadge}>
-          AI active
-        </Badge>
-
         <button
           className={styles.iconButton}
           title="Toggle theme"
