@@ -1,0 +1,45 @@
+services:
+  # -----------------------------------------------------------------------------
+  # VectorHire NestJS Backend Web Service & Queue Workers
+  # -----------------------------------------------------------------------------
+  - type: web
+    name: vectorhire-backend
+    runtime: docker
+    dockerContext: .
+    dockerfilePath: backend/Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /api/v1/health/live
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: BACKEND_PORT
+        value: 4000
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: vectorhire-redis
+          property: connectionString
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+
+  # -----------------------------------------------------------------------------
+  # Redis Queue Service for BullMQ
+  # -----------------------------------------------------------------------------
+  - type: redis
+    name: vectorhire-redis
+    plan: free
+    region: oregon
+    ipAllowList: [] # Only allow internal network traffic

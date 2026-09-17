@@ -73,7 +73,26 @@ const vectorDarkTheme: Theme = {
   colorNeutralShadowKey: 'rgba(2, 6, 23, 0.48)',
 };
 
-const vectorLightTheme = createLightTheme(brand);
+const vectorLightTheme: Theme = {
+  ...createLightTheme(brand),
+  colorNeutralBackground1: '#ffffff',
+  colorNeutralBackground1Hover: '#f8fafc',
+  colorNeutralBackground1Pressed: '#f1f5f9',
+  colorNeutralBackground2: '#f8fafc',
+  colorNeutralBackground2Hover: '#f1f5f9',
+  colorNeutralBackground3: '#f1f5f9',
+  colorNeutralBackground4: '#e2e8f0',
+  colorNeutralBackground5: '#cbd5e1',
+  colorNeutralForeground1: '#0f172a',
+  colorNeutralForeground2: '#334155',
+  colorNeutralForeground3: '#64748b',
+  colorNeutralForeground4: '#94a3b8',
+  colorNeutralStroke1: '#cbd5e1',
+  colorNeutralStroke2: '#e2e8f0',
+  colorNeutralStroke3: '#f1f5f9',
+  colorNeutralShadowAmbient: 'rgba(15, 23, 42, 0.04)',
+  colorNeutralShadowKey: 'rgba(15, 23, 42, 0.08)',
+};
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [renderer] = React.useState(() => createDOMRenderer())

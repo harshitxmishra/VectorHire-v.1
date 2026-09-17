@@ -10,7 +10,7 @@ const useStyles = makeStyles({
   root: {
     display: 'flex',
     height: '100vh',
-    backgroundColor: 'transparent',
+    backgroundColor: tokens.colorNeutralBackground3,
   },
   main: {
     display: 'flex',
@@ -22,8 +22,7 @@ const useStyles = makeStyles({
     flex: 1,
     overflowY: 'auto',
     padding: tokens.spacingHorizontalXL,
-    background:
-      'linear-gradient(180deg, rgba(8, 15, 30, 0.72) 0%, rgba(2, 6, 23, 0.64) 100%)',
+    backgroundColor: tokens.colorNeutralBackground3,
   },
   contentInner: {
     display: 'flex',
