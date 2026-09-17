@@ -7,6 +7,7 @@ import { ChartContainer } from '@/components/ui/chart-container';
 import { useCallback, useEffect, useState } from 'react';
 import { useAppToast } from '@/lib/hooks/use-app-toast';
 import { Candidate, GitHubIntelligence } from '@/lib/types';
+import { safeParseApiResponse } from '@/lib/utils/api-client';
 
 const useStyles = makeStyles({
   container: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -46,13 +47,12 @@ export default function GitHubInsightsPage() {
     setSearchResult(null);
 
     try {
-      const res = await fetch('/api/v1/ai/github/search', {
+      const res = await fetch('/api/ai/github/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ github: searchUrl.trim() }),
       });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? 'GitHub analysis failed.');
+      const body = await safeParseApiResponse<GitHubIntelligence>(res);
       setSearchResult(body);
     } catch (err) {
       setSearchError(err instanceof Error ? err.message : 'GitHub analysis failed.');
@@ -63,9 +63,10 @@ export default function GitHubInsightsPage() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch('/api/v1/candidates');
-      const body = await res.json();
-      setCandidates(Array.isArray(body) ? body : []);
+      const res = await fetch('/api/candidates');
+      const body = await safeParseApiResponse<Candidate[] | { data: Candidate[] }>(res);
+      const list = Array.isArray(body) ? body : (body && typeof body === 'object' && 'data' in body && Array.isArray(body.data)) ? body.data : [];
+      setCandidates(list);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load candidates.');
     } finally {
@@ -86,15 +87,12 @@ export default function GitHubInsightsPage() {
   const analyze = async (candidate: Candidate) => {
     setAnalyzing((prev) => ({ ...prev, [candidate.id]: true }));
     try {
-      const res = await fetch('/api/v1/ai/github', {
+      const res = await fetch('/api/ai/github', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ candidate_id: candidate.id }),
       });
-      const body = await res.json();
-      if (!res.ok) {
-        throw new Error(body.error ?? 'GitHub analysis failed.');
-      }
+      const body = await safeParseApiResponse<{ score?: number; result?: { score?: number }; status?: string; jobId?: string }>(res);
 
       let score = body.score;
 
@@ -111,7 +109,7 @@ export default function GitHubInsightsPage() {
 
           const pollRes = await fetch(`/api/v1/ai/github/jobs/${body.jobId}`);
           if (!pollRes.ok) continue;
-          const pollData = await pollRes.json();
+          const pollData = await safeParseApiResponse<{ state?: string; result?: { score?: number }; error?: string }>(pollRes);
 
           if (pollData.state === 'completed') {
             score = pollData.result?.score;
@@ -126,7 +124,7 @@ export default function GitHubInsightsPage() {
         }
       }
 
-      notify(`GitHub analysis complete — score ${score}/100`, 'success');
+      notify(`GitHub analysis complete — score ${score ?? 0}/100`, 'success');
       await load();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'GitHub analysis failed.', 'error');

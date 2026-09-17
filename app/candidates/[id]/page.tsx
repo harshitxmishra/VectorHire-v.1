@@ -490,12 +490,19 @@ function CandidateDetailContent() {
     notify('Enqueued GitHub Technical Analysis', 'info');
 
     try {
-      const res = await fetch(`/api/v1/candidates/${candidate.id}/analyze-github`, {
+      let res = await fetch(`/api/v1/candidates/${candidate.id}/analyze-github`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ force }),
       });
-      const body = await safeParseApiResponse<{ jobId?: string; error?: string }>(res);
+      if (!res.ok) {
+        res = await fetch('/api/ai/github', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ candidate_id: candidate.id }),
+        });
+      }
+      const body = await safeParseApiResponse<{ jobId?: string; score?: number; error?: string }>(res);
 
       if (body.jobId) {
         setGithubJobState('processing');
@@ -522,6 +529,11 @@ function CandidateDetailContent() {
             }
           }
         }
+      } else {
+        // Direct synchronous response from Next.js route
+        setGithubJobState('completed');
+        notify(`GitHub analysis completed — score ${body.score ?? 0}/100`, 'success');
+        await Promise.all([loadCandidate(), loadTimeline()]);
       }
     } catch (err) {
       setGithubJobState('failed');
