@@ -25,6 +25,9 @@ COPY backend/package.json backend/package-lock.json ./
 COPY --from=deps /app/backend/node_modules ./node_modules
 COPY backend ./
 
+# Symlink node_modules to /app/node_modules so TS compiler resolves types for imported /app/lib files
+RUN ln -s /app/backend/node_modules /app/node_modules
+
 # Compile TypeScript modular monolith into dist/
 ENV NODE_ENV=production
 RUN npm run build
@@ -50,6 +53,7 @@ RUN addgroup --system --gid 1001 nestjs && \
 COPY --from=builder --chown=nestjs:nestjs /app/backend/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nestjs /app/backend/dist ./dist
 COPY --from=builder --chown=nestjs:nestjs /app/backend/package.json ./package.json
+COPY --from=builder --chown=nestjs:nestjs /app/backend/tsconfig.json ./tsconfig.json
 
 # Run as unprivileged user
 USER nestjs

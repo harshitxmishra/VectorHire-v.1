@@ -33,6 +33,7 @@ COPY . .
 # Production build configuration
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 
 # Compile Next.js standalone application
 RUN pnpm run build
