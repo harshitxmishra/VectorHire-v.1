@@ -16,9 +16,9 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: '6px',
     padding: tokens.spacingVerticalM,
-    backgroundColor: 'rgba(30, 41, 59, 0.6)',
+    backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: tokens.borderRadiusMedium,
-    border: '1px solid rgba(148, 163, 184, 0.12)',
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   header: {
     display: 'flex',
@@ -33,14 +33,14 @@ const useStyles = makeStyles({
   barTrack: {
     width: '100%',
     height: '8px',
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    backgroundColor: tokens.colorNeutralBackground3,
     borderRadius: tokens.borderRadiusCircular,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
     borderRadius: tokens.borderRadiusCircular,
-    background: 'linear-gradient(90deg, #6366f1, #3b82f6)',
+    background: `linear-gradient(90deg, ${tokens.colorBrandBackground}, ${tokens.colorBrandBackgroundHover})`,
     transition: 'width 0.8s ease',
   },
   metaRow: {

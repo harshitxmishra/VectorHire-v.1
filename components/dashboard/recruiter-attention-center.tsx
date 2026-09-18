@@ -2,22 +2,19 @@
 
 import {
   Badge,
-  Body2,
-  Caption1,
   Button,
   makeStyles,
   tokens,
   shorthands,
 } from '@fluentui/react-components';
 import {
-  AlertUrgentRegular,
-  ClockRegular,
-  CalendarRegular,
-  MailRegular,
-  ArrowRightRegular,
-  CheckmarkCircleRegular,
-  SparkleRegular,
-  DocumentTextRegular,
+  AlertUrgent16Regular,
+  Clock16Regular,
+  Calendar16Regular,
+  Mail16Regular,
+  ArrowRight16Regular,
+  CheckmarkCircle16Regular,
+  Sparkle16Regular,
 } from '@fluentui/react-icons';
 import Link from 'next/link';
 import { Candidate, Interview, JobDescription } from '@/lib/types';
@@ -26,81 +23,93 @@ const useStyles = makeStyles({
   container: {
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalM,
-    padding: tokens.spacingVerticalL,
-    backgroundColor: 'rgba(30, 41, 59, 0.55)',
-    backdropFilter: 'blur(16px)',
-    borderRadius: tokens.borderRadiusLarge,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.14)'),
+    gap: '12px',
+    padding: '16px 20px',
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderRadius: tokens.borderRadiusMedium,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   headerRow: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: tokens.spacingHorizontalM,
+    gap: '12px',
   },
   titleGroup: {
     display: 'flex',
     alignItems: 'center',
-    gap: tokens.spacingHorizontalS,
+    gap: '8px',
   },
   sectionTitle: {
-    fontSize: tokens.fontSizeBase400,
-    fontWeight: 700,
+    fontSize: '14px',
+    fontWeight: 650,
+    letterSpacing: '-0.01em',
     color: tokens.colorNeutralForeground1,
+  },
+  subtitle: {
+    fontSize: '11px',
+    color: tokens.colorNeutralForeground3,
   },
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-    gap: tokens.spacingHorizontalM,
+    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+    gap: '12px',
   },
   actionCard: {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
-    gap: tokens.spacingVerticalS,
-    padding: tokens.spacingVerticalM,
-    paddingLeft: tokens.spacingHorizontalM,
-    paddingRight: tokens.spacingHorizontalM,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.1)'),
-    transition: `all ${tokens.durationFast}`,
+    gap: '10px',
+    padding: '12px 14px',
+    backgroundColor: tokens.colorNeutralBackground3,
+    borderRadius: tokens.borderRadiusSmall,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    transition: `border-color ${tokens.durationFast}, background-color ${tokens.durationFast}`,
     ':hover': {
-      backgroundColor: 'rgba(30, 41, 59, 0.85)',
-      ...shorthands.borderColor('rgba(129, 140, 248, 0.3)'),
+      backgroundColor: tokens.colorNeutralBackground3Hover,
+      ...shorthands.borderColor(tokens.colorNeutralStroke1),
     },
   },
   cardTop: {
     display: 'flex',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: tokens.spacingHorizontalS,
+    gap: '8px',
   },
   cardLabel: {
     fontWeight: 600,
-    fontSize: tokens.fontSizeBase300,
+    fontSize: '12px',
     color: tokens.colorNeutralForeground1,
   },
   cardDescription: {
-    fontSize: tokens.fontSizeBase200,
+    fontSize: '11px',
     color: tokens.colorNeutralForeground3,
-    lineHeight: '1.4',
+    lineHeight: '15px',
+    marginTop: '2px',
   },
   cardCount: {
-    fontSize: '24px',
+    fontSize: '18px',
     fontWeight: 700,
+    lineHeight: '22px',
+  },
+  cardFooter: {
+    display: 'flex',
+    justifyContent: 'flex-start',
+  },
+  actionLink: {
+    fontSize: '11px',
+    padding: '0',
+    height: 'auto',
   },
   emptyState: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: tokens.spacingHorizontalM,
-    padding: tokens.spacingVerticalL,
-    backgroundColor: 'rgba(15, 23, 42, 0.4)',
-    borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'dashed', 'rgba(148, 163, 184, 0.15)'),
+    gap: '12px',
+    padding: '16px',
+    backgroundColor: tokens.colorNeutralBackground3,
+    borderRadius: tokens.borderRadiusSmall,
+    border: `1px dashed ${tokens.colorNeutralStroke2}`,
   },
 });
 
@@ -159,12 +168,12 @@ export function RecruiterAttentionCenter({
     return (
       <div className={styles.container}>
         <div className={styles.titleGroup}>
-          <ClockRegular style={{ color: '#818cf8', fontSize: '20px' }} />
+          <Clock16Regular style={{ color: tokens.colorBrandForeground1 }} />
           <span className={styles.sectionTitle}>Recruiter Action Center</span>
         </div>
-        <Caption1 style={{ color: tokens.colorNeutralForeground3 }}>
+        <span className={styles.subtitle}>
           Analyzing talent pipeline for pending actions...
-        </Caption1>
+        </span>
       </div>
     );
   }
@@ -173,30 +182,31 @@ export function RecruiterAttentionCenter({
     <div className={styles.container}>
       <div className={styles.headerRow}>
         <div className={styles.titleGroup}>
-          <AlertUrgentRegular style={{ color: '#f59e0b', fontSize: '22px' }} />
+          <AlertUrgent16Regular style={{ color: tokens.colorBrandForeground1 }} />
           <span className={styles.sectionTitle}>Recruiter Action Center</span>
           <Badge
             appearance="filled"
             color={totalAttentionItems > 0 ? 'important' : 'informative'}
+            size="small"
           >
             {totalAttentionItems} Actionable
           </Badge>
         </div>
-        <Caption1 style={{ color: tokens.colorNeutralForeground3 }}>
+        <span className={styles.subtitle}>
           Workflow items requiring recruiter review, scheduling, or communication
-        </Caption1>
+        </span>
       </div>
 
       {totalAttentionItems === 0 && unevaluatedCandidates.length === 0 ? (
         <div className={styles.emptyState}>
-          <CheckmarkCircleRegular style={{ color: '#34d399', fontSize: '28px' }} />
+          <CheckmarkCircle16Regular style={{ color: tokens.colorStatusSuccessForeground1, fontSize: '20px' }} />
           <div>
-            <Body2 style={{ fontWeight: 600, color: tokens.colorNeutralForeground1 }}>
+            <div style={{ fontWeight: 600, fontSize: '12px', color: tokens.colorNeutralForeground1 }}>
               All pipeline workflows are up to date!
-            </Body2>
-            <Caption1 style={{ color: tokens.colorNeutralForeground3 }}>
+            </div>
+            <span className={styles.subtitle}>
               No candidates awaiting review, interviews pending today, or dispatched assessments.
-            </Caption1>
+            </span>
           </div>
         </div>
       ) : (
@@ -211,15 +221,17 @@ export function RecruiterAttentionCenter({
                     Candidates awaiting initial qualification review
                   </div>
                 </div>
-                <span className={styles.cardCount} style={{ color: '#fbbf24' }}>
+                <span className={styles.cardCount} style={{ color: tokens.colorStatusWarningForeground1 }}>
                   {pendingReview.length}
                 </span>
               </div>
-              <Link href="/candidates?status=applied" style={{ textDecoration: 'none' }}>
-                <Button appearance="subtle" size="small" icon={<ArrowRightRegular />}>
-                  Review Candidates
-                </Button>
-              </Link>
+              <div className={styles.cardFooter}>
+                <Link href="/candidates?status=applied" style={{ textDecoration: 'none' }}>
+                  <Button appearance="subtle" size="small" icon={<ArrowRight16Regular />} className={styles.actionLink}>
+                    Review Candidates
+                  </Button>
+                </Link>
+              </div>
             </div>
           )}
 
@@ -233,15 +245,17 @@ export function RecruiterAttentionCenter({
                     Scheduled sessions taking place today
                   </div>
                 </div>
-                <span className={styles.cardCount} style={{ color: '#60a5fa' }}>
+                <span className={styles.cardCount} style={{ color: tokens.colorBrandForeground1 }}>
                   {interviewsToday.length}
                 </span>
               </div>
-              <Link href="/interview-scheduling" style={{ textDecoration: 'none' }}>
-                <Button appearance="subtle" size="small" icon={<CalendarRegular />}>
-                  View Schedule
-                </Button>
-              </Link>
+              <div className={styles.cardFooter}>
+                <Link href="/interview-scheduling" style={{ textDecoration: 'none' }}>
+                  <Button appearance="subtle" size="small" icon={<Calendar16Regular />} className={styles.actionLink}>
+                    View Schedule
+                  </Button>
+                </Link>
+              </div>
             </div>
           )}
 
@@ -250,20 +264,22 @@ export function RecruiterAttentionCenter({
             <div className={styles.actionCard}>
               <div className={styles.cardTop}>
                 <div>
-                  <div className={styles.cardLabel}>Awaiting Interview Scheduling</div>
+                  <div className={styles.cardLabel}>Awaiting Scheduling</div>
                   <div className={styles.cardDescription}>
                     Qualified candidates ready for recruiter interview
                   </div>
                 </div>
-                <span className={styles.cardCount} style={{ color: '#818cf8' }}>
+                <span className={styles.cardCount} style={{ color: tokens.colorBrandForeground1 }}>
                   {eligibleForInterview.length}
                 </span>
               </div>
-              <Link href="/interview-scheduling" style={{ textDecoration: 'none' }}>
-                <Button appearance="subtle" size="small" icon={<CalendarRegular />}>
-                  Schedule Interviews
-                </Button>
-              </Link>
+              <div className={styles.cardFooter}>
+                <Link href="/interview-scheduling" style={{ textDecoration: 'none' }}>
+                  <Button appearance="subtle" size="small" icon={<Calendar16Regular />} className={styles.actionLink}>
+                    Schedule Interviews
+                  </Button>
+                </Link>
+              </div>
             </div>
           )}
 
@@ -274,18 +290,20 @@ export function RecruiterAttentionCenter({
                 <div>
                   <div className={styles.cardLabel}>Assessments Dispatched</div>
                   <div className={styles.cardDescription}>
-                    Assessment invitations sent, awaiting candidate submission
+                    Invitations sent, awaiting candidate submission
                   </div>
                 </div>
-                <span className={styles.cardCount} style={{ color: '#a78bfa' }}>
+                <span className={styles.cardCount} style={{ color: tokens.colorNeutralForeground2 }}>
                   {assessmentsPending.length}
                 </span>
               </div>
-              <Link href="/candidates?status=assessment%20sent" style={{ textDecoration: 'none' }}>
-                <Button appearance="subtle" size="small" icon={<MailRegular />}>
-                  Track Assessments
-                </Button>
-              </Link>
+              <div className={styles.cardFooter}>
+                <Link href="/candidates?status=assessment%20sent" style={{ textDecoration: 'none' }}>
+                  <Button appearance="subtle" size="small" icon={<Mail16Regular />} className={styles.actionLink}>
+                    Track Assessments
+                  </Button>
+                </Link>
+              </div>
             </div>
           )}
 
@@ -299,15 +317,17 @@ export function RecruiterAttentionCenter({
                     Profiles lacking automated AI evaluation score
                   </div>
                 </div>
-                <span className={styles.cardCount} style={{ color: '#94a3b8' }}>
+                <span className={styles.cardCount} style={{ color: tokens.colorNeutralForeground4 }}>
                   {unevaluatedCandidates.length}
                 </span>
               </div>
-              <Link href="/ai-evaluation" style={{ textDecoration: 'none' }}>
-                <Button appearance="subtle" size="small" icon={<SparkleRegular />}>
-                  Run Evaluations
-                </Button>
-              </Link>
+              <div className={styles.cardFooter}>
+                <Link href="/ai-evaluation" style={{ textDecoration: 'none' }}>
+                  <Button appearance="subtle" size="small" icon={<Sparkle16Regular />} className={styles.actionLink}>
+                    Run Evaluations
+                  </Button>
+                </Link>
+              </div>
             </div>
           )}
         </div>

@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  Body2,
   Caption1,
   Tooltip,
   makeStyles,
@@ -14,82 +13,88 @@ const useStyles = makeStyles({
   root: {
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalL,
-    padding: tokens.spacingVerticalXL,
-    backgroundColor: 'rgba(15, 23, 42, 0.82)',
+    gap: '12px',
+    padding: '16px 20px',
+    backgroundColor: tokens.colorNeutralBackground1,
     border: `1px solid ${tokens.colorNeutralStroke2}`,
-    borderRadius: tokens.borderRadiusXLarge,
-    boxShadow: tokens.shadow8,
-    transition: `all ${tokens.durationNormal} ${tokens.curveEasyEase}`,
+    borderRadius: tokens.borderRadiusMedium,
+    transition: `border-color ${tokens.durationFast} ${tokens.curveEasyEase}, background-color ${tokens.durationFast}`,
     ':hover': {
-      backgroundColor: 'rgba(21, 32, 51, 0.96)',
+      backgroundColor: tokens.colorNeutralBackground1Hover,
       ...shorthands.borderColor(tokens.colorNeutralStroke1),
-      boxShadow: tokens.shadow16,
-      transform: 'translateY(-2px)',
     },
   },
   header: {
     display: 'flex',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: tokens.spacingHorizontalM,
+    gap: '12px',
   },
   titleContainer: {
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalS,
+    gap: '4px',
     flex: 1,
   },
   icon: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: '48px',
-    minHeight: '48px',
-    borderRadius: tokens.borderRadiusLarge,
-    backgroundColor: 'rgba(71, 108, 181, 0.14)',
+    width: '32px',
+    height: '32px',
+    borderRadius: tokens.borderRadiusSmall,
+    backgroundColor: tokens.colorNeutralBackground3,
     color: tokens.colorBrandForeground1,
-    border: '1px solid rgba(101, 147, 245, 0.16)',
+    border: `1px solid ${tokens.colorNeutralStroke3}`,
   },
   value: {
-    fontSize: '34px',
-    lineHeight: '38px',
-    fontWeight: 700,
-    letterSpacing: '-0.03em',
+    fontSize: '24px',
+    lineHeight: '28px',
+    fontWeight: 650,
+    letterSpacing: '-0.02em',
     color: tokens.colorNeutralForeground1,
   },
   label: {
-    fontSize: tokens.fontSizeBase200,
+    fontSize: '11px',
     textTransform: 'uppercase',
-    letterSpacing: '0.08em',
-    color: tokens.colorNeutralForeground3,
+    letterSpacing: '0.05em',
+    fontWeight: 600,
+    color: tokens.colorNeutralForeground4,
   },
   footer: {
     display: 'flex',
     alignItems: 'center',
-    gap: tokens.spacingHorizontalS,
-    paddingTop: tokens.spacingVerticalM,
+    gap: '8px',
+    paddingTop: '8px',
     borderTop: `1px solid ${tokens.colorNeutralStroke3}`,
   },
   trend: {
-    fontSize: tokens.fontSizeBase200,
+    fontSize: '11px',
     fontWeight: 600,
+    paddingLeft: '4px',
+    paddingRight: '4px',
+    paddingTop: '1px',
+    paddingBottom: '1px',
+    borderRadius: tokens.borderRadiusSmall,
   },
   trendUp: {
     color: tokens.colorStatusSuccessForeground1,
+    backgroundColor: tokens.colorStatusSuccessBackground1,
   },
   trendDown: {
     color: tokens.colorStatusDangerForeground1,
+    backgroundColor: tokens.colorStatusDangerBackground1,
   },
   subtext: {
+    fontSize: '11px',
     color: tokens.colorNeutralForeground3,
   },
   skeleton: {
     backgroundColor: tokens.colorNeutralBackground4,
-    borderRadius: tokens.borderRadiusLarge,
+    borderRadius: tokens.borderRadiusSmall,
     animationName: {
       '0%, 100%': {
-        opacity: 0.6,
+        opacity: 0.5,
       },
       '50%': {
         opacity: 1,
@@ -100,11 +105,13 @@ const useStyles = makeStyles({
     animationIterationCount: 'infinite',
   },
   skeletonValue: {
-    height: '32px',
-    marginBottom: tokens.spacingVerticalM,
+    height: '24px',
+    width: '60%',
+    marginBottom: '8px',
   },
   skeletonLabel: {
-    height: '16px',
+    height: '12px',
+    width: '40%',
   },
 });
 
@@ -156,9 +163,9 @@ export function StatCard({
               trend.direction === 'up' ? styles.trendUp : styles.trendDown
             }`}
           >
-            {trend.direction === 'up' ? 'Up' : 'Down'} {trend.value}%
+            {trend.direction === 'up' ? '↑' : '↓'} {trend.value}%
           </span>
-          <Body2 className={styles.subtext}>{trend.label}</Body2>
+          <span className={styles.subtext}>{trend.label}</span>
         </div>
       ) : null}
     </div>

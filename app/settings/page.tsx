@@ -48,10 +48,9 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: tokens.spacingVerticalM,
     padding: tokens.spacingVerticalL,
-    backgroundColor: 'rgba(15, 23, 42, 0.7)',
-    backdropFilter: 'blur(16px)',
+    backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: tokens.borderRadiusLarge,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.14)'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
   },
   formGrid: {
     display: 'grid',
@@ -66,9 +65,11 @@ const useStyles = makeStyles({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: tokens.spacingVerticalM,
-    backgroundColor: 'rgba(30, 41, 59, 0.6)',
+    paddingLeft: tokens.spacingHorizontalL,
+    paddingRight: tokens.spacingHorizontalL,
+    backgroundColor: tokens.colorNeutralBackground2,
     borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.1)'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
   },
 });
 

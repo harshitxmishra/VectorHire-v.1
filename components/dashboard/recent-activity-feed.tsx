@@ -2,22 +2,20 @@
 
 import {
   Badge,
-  Body2,
-  Caption1,
   Spinner,
   makeStyles,
   tokens,
   shorthands,
 } from '@fluentui/react-components';
 import {
-  History24Regular,
-  SparkleRegular,
-  CalendarRegular,
-  MailRegular,
-  DocumentTextRegular,
-  CodeRegular,
-  CheckmarkCircleRegular,
-  TagRegular,
+  History20Regular,
+  Sparkle16Regular,
+  Calendar16Regular,
+  Mail16Regular,
+  DocumentText16Regular,
+  Code16Regular,
+  CheckmarkCircle16Regular,
+  Tag16Regular,
 } from '@fluentui/react-icons';
 import Link from 'next/link';
 import { TimelineEvent } from '@/lib/types';
@@ -26,90 +24,95 @@ const useStyles = makeStyles({
   container: {
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalM,
-    padding: tokens.spacingVerticalL,
-    backgroundColor: 'rgba(30, 41, 59, 0.65)',
-    borderRadius: tokens.borderRadiusLarge,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.12)'),
+    gap: '12px',
+    padding: '16px 20px',
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderRadius: tokens.borderRadiusMedium,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   header: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: tokens.spacingHorizontalM,
+    gap: '12px',
   },
   titleGroup: {
     display: 'flex',
     alignItems: 'center',
-    gap: tokens.spacingHorizontalS,
+    gap: '8px',
   },
   title: {
-    fontSize: tokens.fontSizeBase400,
-    fontWeight: 700,
+    fontSize: '14px',
+    fontWeight: 650,
+    letterSpacing: '-0.01em',
     color: tokens.colorNeutralForeground1,
   },
   feedList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalS,
-    maxHeight: '400px',
+    gap: '8px',
+    maxHeight: '380px',
     overflowY: 'auto',
-    paddingRight: tokens.spacingHorizontalXS,
+    paddingRight: '4px',
   },
   feedItem: {
     display: 'flex',
     alignItems: 'flex-start',
-    gap: tokens.spacingHorizontalM,
-    padding: tokens.spacingVerticalM,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.08)'),
-    transition: `all ${tokens.durationFast}`,
+    gap: '10px',
+    padding: '10px 14px',
+    backgroundColor: tokens.colorNeutralBackground3,
+    borderRadius: tokens.borderRadiusSmall,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    transition: `border-color ${tokens.durationFast}, background-color ${tokens.durationFast}`,
     ':hover': {
-      backgroundColor: 'rgba(30, 41, 59, 0.85)',
-      ...shorthands.borderColor('rgba(129, 140, 248, 0.25)'),
+      backgroundColor: tokens.colorNeutralBackground3Hover,
+      ...shorthands.borderColor(tokens.colorNeutralStroke1),
     },
   },
   eventIconWrapper: {
     marginTop: '2px',
-    padding: '6px',
-    borderRadius: '8px',
-    backgroundColor: 'rgba(71, 85, 105, 0.3)',
+    width: '24px',
+    height: '24px',
+    borderRadius: tokens.borderRadiusSmall,
+    backgroundColor: tokens.colorNeutralBackground1,
+    border: `1px solid ${tokens.colorNeutralStroke3}`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   eventContent: {
     display: 'flex',
     flexDirection: 'column',
     gap: '2px',
     flex: 1,
+    minWidth: 0,
   },
   eventHeader: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: tokens.spacingHorizontalS,
+    gap: '6px',
   },
   candidateLink: {
     fontWeight: 600,
-    fontSize: tokens.fontSizeBase300,
+    fontSize: '13px',
     color: tokens.colorNeutralForeground1,
     textDecoration: 'none',
     ':hover': {
-      color: '#818cf8',
+      color: tokens.colorBrandForeground1,
       textDecoration: 'underline',
     },
   },
   detailsText: {
-    fontSize: tokens.fontSizeBase200,
-    color: tokens.colorNeutralForeground2,
-    lineHeight: '1.4',
+    fontSize: '11px',
+    color: tokens.colorNeutralForeground3,
+    lineHeight: '15px',
   },
   timestamp: {
-    fontSize: tokens.fontSizeBase100,
+    fontSize: '10px',
     color: tokens.colorNeutralForeground4,
   },
   emptyState: {
@@ -117,12 +120,12 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: tokens.spacingVerticalS,
-    padding: '32px 16px',
+    gap: '6px',
+    padding: '24px 16px',
     textAlign: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.4)',
-    borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'dashed', 'rgba(148, 163, 184, 0.15)'),
+    backgroundColor: tokens.colorNeutralBackground3,
+    borderRadius: tokens.borderRadiusSmall,
+    border: `1px dashed ${tokens.colorNeutralStroke2}`,
   },
 });
 
@@ -137,24 +140,24 @@ export function RecentActivityFeed({ events, isLoading }: RecentActivityFeedProp
   const getEventIcon = (eventType: string) => {
     const et = eventType.toLowerCase();
     if (et.includes('ai') || et.includes('evaluat')) {
-      return <SparkleRegular style={{ color: '#818cf8', fontSize: '16px' }} />;
+      return <Sparkle16Regular style={{ color: tokens.colorBrandForeground1 }} />;
     }
     if (et.includes('interview')) {
-      return <CalendarRegular style={{ color: '#60a5fa', fontSize: '16px' }} />;
+      return <Calendar16Regular style={{ color: tokens.colorBrandForeground2 }} />;
     }
     if (et.includes('email') || et.includes('assessment') || et.includes('offer')) {
-      return <MailRegular style={{ color: '#f59e0b', fontSize: '16px' }} />;
+      return <Mail16Regular style={{ color: tokens.colorStatusWarningForeground1 }} />;
     }
     if (et.includes('resume')) {
-      return <DocumentTextRegular style={{ color: '#34d399', fontSize: '16px' }} />;
+      return <DocumentText16Regular style={{ color: tokens.colorStatusSuccessForeground1 }} />;
     }
     if (et.includes('github')) {
-      return <CodeRegular style={{ color: '#c084fc', fontSize: '16px' }} />;
+      return <Code16Regular style={{ color: tokens.colorBrandForeground1 }} />;
     }
     if (et.includes('status')) {
-      return <TagRegular style={{ color: '#38bdf8', fontSize: '16px' }} />;
+      return <Tag16Regular style={{ color: tokens.colorNeutralForeground2 }} />;
     }
-    return <CheckmarkCircleRegular style={{ color: '#94a3b8', fontSize: '16px' }} />;
+    return <CheckmarkCircle16Regular style={{ color: tokens.colorNeutralForeground4 }} />;
   };
 
   const formatEventType = (eventType: string) => {
@@ -169,30 +172,30 @@ export function RecentActivityFeed({ events, isLoading }: RecentActivityFeedProp
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.titleGroup}>
-          <History24Regular style={{ color: '#818cf8' }} />
+          <History20Regular style={{ color: tokens.colorBrandForeground1 }} />
           <span className={styles.title}>Recent Pipeline Activity</span>
-          <Badge appearance="tint" color="informative">
+          <Badge appearance="tint" color="informative" size="small">
             {events.length} Events
           </Badge>
         </div>
-        <Caption1 style={{ color: tokens.colorNeutralForeground4 }}>
+        <span style={{ fontSize: '11px', color: tokens.colorNeutralForeground4 }}>
           Live timeline stream
-        </Caption1>
+        </span>
       </div>
 
       {isLoading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '32px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
           <Spinner size="small" label="Loading timeline activity..." />
         </div>
       ) : events.length === 0 ? (
         <div className={styles.emptyState}>
-          <History24Regular style={{ fontSize: '32px', color: '#94a3b8' }} />
-          <Body2 style={{ color: tokens.colorNeutralForeground2, fontWeight: 600 }}>
+          <History20Regular style={{ fontSize: '24px', color: tokens.colorNeutralForeground4 }} />
+          <div style={{ color: tokens.colorNeutralForeground2, fontWeight: 600, fontSize: '12px' }}>
             No recent timeline activity
-          </Body2>
-          <Caption1 style={{ color: tokens.colorNeutralForeground3 }}>
+          </div>
+          <span style={{ color: tokens.colorNeutralForeground3, fontSize: '11px' }}>
             Recruiter actions, status changes, and AI evaluations will appear here in chronological order.
-          </Caption1>
+          </span>
         </div>
       ) : (
         <div className={styles.feedList}>

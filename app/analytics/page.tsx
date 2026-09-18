@@ -27,15 +27,14 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: '4px',
     padding: tokens.spacingVerticalL,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    backdropFilter: 'blur(16px)',
-    borderRadius: tokens.borderRadiusLarge,
-    border: '1px solid rgba(148, 163, 184, 0.12)',
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderRadius: tokens.borderRadiusMedium,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   kpiValue: {
     fontSize: tokens.fontSizeBase600,
     fontWeight: 800,
-    color: '#f8fafc',
+    color: tokens.colorNeutralForeground1,
     letterSpacing: '-0.02em',
   },
   kpiLabel: {
@@ -102,19 +101,19 @@ export default function AnalyticsPage() {
           </div>
           <div className={styles.kpiCard}>
             <span className={styles.kpiLabel}>Average AI Match</span>
-            <span className={styles.kpiValue} style={{ color: '#818cf8' }}>
+            <span className={styles.kpiValue} style={{ color: tokens.colorBrandForeground1 }}>
               {averageAIScore}%
             </span>
           </div>
           <div className={styles.kpiCard}>
             <span className={styles.kpiLabel}>Average CGPA</span>
-            <span className={styles.kpiValue} style={{ color: '#38bdf8' }}>
+            <span className={styles.kpiValue} style={{ color: tokens.colorBrandForeground2 }}>
               {averageCGPA}
             </span>
           </div>
           <div className={styles.kpiCard}>
             <span className={styles.kpiLabel}>Hire Conversion Yield</span>
-            <span className={styles.kpiValue} style={{ color: '#4ade80' }}>
+            <span className={styles.kpiValue} style={{ color: tokens.colorPaletteGreenForeground1 }}>
               {conversionRate}%
             </span>
           </div>

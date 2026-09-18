@@ -3,9 +3,6 @@
 import React, { useState } from 'react';
 import {
   Avatar,
-  Badge,
-  Body2,
-  Body1Strong,
   Button,
   Input,
   makeStyles,
@@ -18,15 +15,13 @@ import {
   MenuPopover,
   MenuDivider,
   Caption1,
+  Tooltip,
 } from '@fluentui/react-components';
 import {
-  Alert24Regular,
   Dismiss12Regular,
   SearchRegular,
-  Sparkle24Regular,
   SignOut20Regular,
   Settings20Regular,
-  Person20Regular,
   WeatherMoon20Regular,
   WeatherSunny20Regular,
 } from '@fluentui/react-icons';
@@ -39,87 +34,115 @@ const useStyles = makeStyles({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: '76px',
+    minHeight: '54px',
+    maxHeight: '54px',
     backgroundColor: tokens.colorNeutralBackground1,
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-    paddingLeft: tokens.spacingHorizontalXL,
-    paddingRight: tokens.spacingHorizontalXL,
-    paddingTop: tokens.spacingVerticalS,
-    paddingBottom: tokens.spacingVerticalS,
-    gap: tokens.spacingHorizontalL,
+    paddingLeft: '24px',
+    paddingRight: '24px',
+    gap: '16px',
     position: 'sticky',
     top: 0,
     zIndex: 20,
+    flexShrink: 0,
   },
   leftSection: {
     display: 'flex',
     alignItems: 'center',
-    gap: tokens.spacingHorizontalL,
+    gap: '16px',
     flex: 1,
+    minWidth: 0,
   },
   titleBlock: {
     display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-    minWidth: '200px',
+    alignItems: 'center',
+    gap: '8px',
+    minWidth: 'fit-content',
   },
   pageTitle: {
     color: tokens.colorNeutralForeground1,
-    fontSize: tokens.fontSizeBase500,
-    fontWeight: 700,
-    letterSpacing: '-0.02em',
+    fontSize: '14px',
+    fontWeight: 650,
+    letterSpacing: '-0.01em',
   },
-  pageMeta: {
+  metaBadge: {
+    fontSize: '11px',
     color: tokens.colorNeutralForeground3,
-    fontSize: tokens.fontSizeBase200,
+    backgroundColor: tokens.colorNeutralBackground3,
+    paddingLeft: '6px',
+    paddingRight: '6px',
+    paddingTop: '2px',
+    paddingBottom: '2px',
+    borderRadius: tokens.borderRadiusSmall,
+    border: `1px solid ${tokens.colorNeutralStroke3}`,
   },
   searchContainer: {
     flex: 1,
-    maxWidth: '480px',
+    maxWidth: '420px',
     display: 'flex',
     alignItems: 'center',
   },
   searchInput: {
-    minWidth: '100%',
+    width: '100%',
+    backgroundColor: tokens.colorNeutralBackground3,
+    borderRadius: tokens.borderRadiusMedium,
+    fontSize: '13px',
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
+    ':focus-within': {
+      ...shorthands.borderColor(tokens.colorBrandStroke1),
+    },
+  },
+  searchShortcut: {
+    fontSize: '10px',
+    fontWeight: 600,
+    color: tokens.colorNeutralForeground4,
+    backgroundColor: tokens.colorNeutralBackground1,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    paddingLeft: '4px',
+    paddingRight: '4px',
+    paddingTop: '1px',
+    paddingBottom: '1px',
+    borderRadius: tokens.borderRadiusSmall,
+    marginRight: '2px',
   },
   rightSection: {
     display: 'flex',
     alignItems: 'center',
-    gap: tokens.spacingHorizontalM,
+    gap: '8px',
   },
-  iconButton: {
+  themeButton: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    width: '38px',
-    height: '38px',
+    width: '32px',
+    height: '32px',
     borderRadius: tokens.borderRadiusMedium,
     ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
-    backgroundColor: tokens.colorNeutralBackground2,
+    backgroundColor: tokens.colorNeutralBackground1,
     color: tokens.colorNeutralForeground2,
-    transition: `all ${tokens.durationNormal} ${tokens.curveEasyEase}`,
+    transition: `background-color ${tokens.durationFast}, color ${tokens.durationFast}, border-color ${tokens.durationFast}`,
     ':hover': {
       color: tokens.colorNeutralForeground1,
       ...shorthands.borderColor(tokens.colorNeutralStroke1),
-      backgroundColor: tokens.colorNeutralBackground2Hover,
+      backgroundColor: tokens.colorNeutralBackground1Hover,
     },
   },
   profileTrigger: {
     display: 'flex',
     alignItems: 'center',
-    gap: tokens.spacingHorizontalM,
-    paddingLeft: tokens.spacingHorizontalM,
-    paddingRight: tokens.spacingHorizontalS,
-    paddingTop: tokens.spacingVerticalXS,
-    paddingBottom: tokens.spacingVerticalXS,
+    gap: '8px',
+    paddingLeft: '8px',
+    paddingRight: '8px',
+    paddingTop: '4px',
+    paddingBottom: '4px',
     borderRadius: tokens.borderRadiusMedium,
     ...shorthands.border('1px', 'solid', 'transparent'),
     backgroundColor: 'transparent',
     cursor: 'pointer',
-    transition: `all ${tokens.durationFast}`,
+    transition: `background-color ${tokens.durationFast}`,
     ':hover': {
-      backgroundColor: tokens.colorNeutralBackground2Hover,
+      backgroundColor: tokens.colorNeutralBackground1Hover,
       ...shorthands.borderColor(tokens.colorNeutralStroke2),
     },
   },
@@ -127,14 +150,23 @@ const useStyles = makeStyles({
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'flex-start',
-    gap: '2px',
+    lineHeight: '13px',
+  },
+  profileName: {
+    fontSize: '12px',
+    fontWeight: 600,
+    color: tokens.colorNeutralForeground1,
+  },
+  profileRole: {
+    fontSize: '10px',
+    color: tokens.colorNeutralForeground3,
   },
   popoverCard: {
-    padding: tokens.spacingVerticalM,
+    padding: '12px',
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalS,
-    minWidth: '220px',
+    gap: '4px',
+    minWidth: '200px',
   },
 });
 
@@ -151,17 +183,15 @@ export function Navbar() {
     <nav className={styles.root}>
       <div className={styles.leftSection}>
         <div className={styles.titleBlock}>
-          <div className={styles.pageTitle}>Talent Operations</div>
-          <Body2 className={styles.pageMeta}>
-            {workspaceName} • AI Screening & Interview Engine
-          </Body2>
+          <span className={styles.pageTitle}>Talent Intelligence</span>
+          <span className={styles.metaBadge}>{workspaceName || 'Live Workspace'}</span>
         </div>
 
         <div className={styles.searchContainer}>
           <Input
             className={styles.searchInput}
-            contentBefore={<SearchRegular />}
-            placeholder="Search candidates, campaigns, or skill match..."
+            contentBefore={<SearchRegular style={{ fontSize: '15px' }} />}
+            placeholder="Search candidates, skills, campaigns..."
             value={searchValue}
             onChange={(e, data) => setSearchValue(data.value)}
             contentAfter={
@@ -172,39 +202,41 @@ export function Navbar() {
                   icon={<Dismiss12Regular />}
                   onClick={() => setSearchValue('')}
                 />
-              ) : undefined
+              ) : (
+                <span className={styles.searchShortcut}>⌘K</span>
+              )
             }
           />
         </div>
       </div>
 
       <div className={styles.rightSection}>
-        <button
-          className={styles.iconButton}
-          title="Toggle theme"
-          onClick={() => setMode(mode === 'light' ? 'dark' : 'light')}
-        >
-          {mode === 'light' ? <WeatherMoon20Regular /> : <WeatherSunny20Regular />}
-        </button>
+        <Tooltip content={mode === 'light' ? 'Switch to Dark mode' : 'Switch to Light mode'} relationship="label">
+          <button
+            className={styles.themeButton}
+            aria-label="Toggle theme"
+            onClick={() => setMode(mode === 'light' ? 'dark' : 'light')}
+          >
+            {mode === 'light' ? <WeatherMoon20Regular /> : <WeatherSunny20Regular />}
+          </button>
+        </Tooltip>
 
         <Menu>
           <MenuTrigger disableButtonEnhancement>
             <button className={styles.profileTrigger}>
-              <Avatar name={displayName} size={36} color="brand" />
+              <Avatar name={displayName} size={28} color="brand" />
               <div className={styles.profileText}>
-                <Body1Strong style={{ fontSize: '13px', lineHeight: '16px' }}>
-                  {displayName}
-                </Body1Strong>
-                <Caption1 style={{ color: tokens.colorNeutralForeground3 }}>
-                  {displayRole}
-                </Caption1>
+                <span className={styles.profileName}>{displayName}</span>
+                <span className={styles.profileRole}>{displayRole}</span>
               </div>
             </button>
           </MenuTrigger>
 
           <MenuPopover>
             <div className={styles.popoverCard}>
-              <Body1Strong>{displayName}</Body1Strong>
+              <span style={{ fontSize: '13px', fontWeight: 650, color: tokens.colorNeutralForeground1 }}>
+                {displayName}
+              </span>
               <Caption1 style={{ color: tokens.colorNeutralForeground3 }}>
                 {user?.email || 'admin@vectorhire.ai'}
               </Caption1>
@@ -212,7 +244,7 @@ export function Navbar() {
             <MenuDivider />
             <MenuList>
               <Link href="/settings" style={{ textDecoration: 'none', color: 'inherit' }}>
-                <MenuItem icon={<Settings20Regular />}>Settings & API Keys</MenuItem>
+                <MenuItem icon={<Settings20Regular />}>Workspace Settings & APIs</MenuItem>
               </Link>
               <MenuItem
                 icon={mode === 'light' ? <WeatherMoon20Regular /> : <WeatherSunny20Regular />}

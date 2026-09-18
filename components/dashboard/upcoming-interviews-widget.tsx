@@ -2,8 +2,6 @@
 
 import {
   Badge,
-  Body2,
-  Caption1,
   Button,
   Spinner,
   makeStyles,
@@ -11,11 +9,11 @@ import {
   shorthands,
 } from '@fluentui/react-components';
 import {
-  CalendarRegular,
-  VideoRegular,
-  OpenRegular,
-  CalendarAgenda24Regular,
-  ClockRegular,
+  Calendar16Regular,
+  Video16Regular,
+  Open16Regular,
+  CalendarAgenda20Regular,
+  Clock16Regular,
 } from '@fluentui/react-icons';
 import Link from 'next/link';
 import { Interview } from '@/lib/types';
@@ -24,50 +22,49 @@ const useStyles = makeStyles({
   container: {
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalM,
-    padding: tokens.spacingVerticalL,
-    backgroundColor: 'rgba(30, 41, 59, 0.65)',
-    borderRadius: tokens.borderRadiusLarge,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.12)'),
+    gap: '12px',
+    padding: '16px 20px',
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderRadius: tokens.borderRadiusMedium,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   header: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: tokens.spacingHorizontalM,
+    gap: '12px',
   },
   titleGroup: {
     display: 'flex',
     alignItems: 'center',
-    gap: tokens.spacingHorizontalS,
+    gap: '8px',
   },
   title: {
-    fontSize: tokens.fontSizeBase400,
-    fontWeight: 700,
+    fontSize: '14px',
+    fontWeight: 650,
+    letterSpacing: '-0.01em',
     color: tokens.colorNeutralForeground1,
   },
   list: {
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalS,
+    gap: '8px',
   },
   interviewItem: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: tokens.spacingHorizontalM,
-    padding: tokens.spacingVerticalM,
-    paddingLeft: tokens.spacingHorizontalM,
-    paddingRight: tokens.spacingHorizontalM,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.08)'),
-    transition: `all ${tokens.durationFast}`,
+    gap: '10px',
+    padding: '10px 14px',
+    backgroundColor: tokens.colorNeutralBackground3,
+    borderRadius: tokens.borderRadiusSmall,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    transition: `border-color ${tokens.durationFast}, background-color ${tokens.durationFast}`,
     ':hover': {
-      backgroundColor: 'rgba(30, 41, 59, 0.85)',
-      ...shorthands.borderColor('rgba(129, 140, 248, 0.25)'),
+      backgroundColor: tokens.colorNeutralBackground3Hover,
+      ...shorthands.borderColor(tokens.colorNeutralStroke1),
     },
   },
   candidateInfo: {
@@ -77,16 +74,16 @@ const useStyles = makeStyles({
   },
   candidateName: {
     fontWeight: 600,
-    fontSize: tokens.fontSizeBase300,
+    fontSize: '13px',
     color: tokens.colorNeutralForeground1,
     textDecoration: 'none',
     ':hover': {
-      color: '#818cf8',
+      color: tokens.colorBrandForeground1,
       textDecoration: 'underline',
     },
   },
   meta: {
-    fontSize: tokens.fontSizeBase200,
+    fontSize: '11px',
     color: tokens.colorNeutralForeground3,
     display: 'flex',
     alignItems: 'center',
@@ -96,20 +93,23 @@ const useStyles = makeStyles({
   actions: {
     display: 'flex',
     alignItems: 'center',
-    gap: tokens.spacingHorizontalS,
+    gap: '6px',
     flexWrap: 'wrap',
+  },
+  actionButton: {
+    fontSize: '11px',
   },
   emptyState: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: tokens.spacingVerticalS,
-    padding: '32px 16px',
+    gap: '6px',
+    padding: '24px 16px',
     textAlign: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.4)',
-    borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'dashed', 'rgba(148, 163, 184, 0.15)'),
+    backgroundColor: tokens.colorNeutralBackground3,
+    borderRadius: tokens.borderRadiusSmall,
+    border: `1px dashed ${tokens.colorNeutralStroke2}`,
   },
 });
 
@@ -134,37 +134,32 @@ export function UpcomingInterviewsWidget({
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.titleGroup}>
-          <CalendarAgenda24Regular style={{ color: '#818cf8' }} />
+          <CalendarAgenda20Regular style={{ color: tokens.colorBrandForeground1 }} />
           <span className={styles.title}>Upcoming Interviews</span>
-          <Badge appearance="tint" color="informative">
+          <Badge appearance="tint" color="informative" size="small">
             {scheduledUpcoming.length} Scheduled
           </Badge>
         </div>
         <Link href="/interview-scheduling" style={{ textDecoration: 'none' }}>
-          <Button appearance="subtle" size="small" icon={<CalendarRegular />}>
-            Full Calendar
+          <Button appearance="subtle" size="small" icon={<Calendar16Regular />} className={styles.actionButton}>
+            Calendar
           </Button>
         </Link>
       </div>
 
       {isLoading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '32px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
           <Spinner size="small" label="Loading interview schedule..." />
         </div>
       ) : scheduledUpcoming.length === 0 ? (
         <div className={styles.emptyState}>
-          <CalendarRegular style={{ fontSize: '32px', color: '#94a3b8' }} />
-          <Body2 style={{ color: tokens.colorNeutralForeground2, fontWeight: 600 }}>
+          <Calendar16Regular style={{ fontSize: '24px', color: tokens.colorNeutralForeground4 }} />
+          <div style={{ color: tokens.colorNeutralForeground2, fontWeight: 600, fontSize: '12px' }}>
             No upcoming interviews scheduled
-          </Body2>
-          <Caption1 style={{ color: tokens.colorNeutralForeground3 }}>
-            Candidates moved to &ldquo;Interview Eligible&rdquo; can be scheduled via candidate workspace or calendar.
-          </Caption1>
-          <Link href="/interview-scheduling" style={{ textDecoration: 'none' }}>
-            <Button appearance="secondary" size="small">
-              Schedule New Interview
-            </Button>
-          </Link>
+          </div>
+          <span style={{ color: tokens.colorNeutralForeground3, fontSize: '11px' }}>
+            Candidates moved to &ldquo;Interview Eligible&rdquo; can be scheduled via candidate workspace.
+          </span>
         </div>
       ) : (
         <div className={styles.list}>
@@ -185,12 +180,12 @@ export function UpcomingInterviewsWidget({
                     {candidateName}
                   </Link>
                   <div className={styles.meta}>
-                    <ClockRegular style={{ fontSize: '14px' }} />
+                    <Clock16Regular style={{ fontSize: '12px' }} />
                     <span>{dateFormatted}</span>
                     <span>&bull;</span>
                     <span>{item.duration_minutes} min</span>
                     <span>&bull;</span>
-                    <span>Interviewer: {item.interviewer_name}</span>
+                    <span>{item.interviewer_name}</span>
                   </div>
                 </div>
 
@@ -199,15 +194,16 @@ export function UpcomingInterviewsWidget({
                     <Button
                       appearance="primary"
                       size="small"
-                      icon={<VideoRegular />}
+                      icon={<Video16Regular />}
+                      className={styles.actionButton}
                       onClick={() => window.open(item.meet_link!, '_blank')}
                     >
-                      Join Meet
+                      Join
                     </Button>
                   )}
                   <Link href={`/candidates/${item.candidate_id}`} style={{ textDecoration: 'none' }}>
-                    <Button appearance="subtle" size="small" icon={<OpenRegular />}>
-                      Workspace
+                    <Button appearance="subtle" size="small" icon={<Open16Regular />} className={styles.actionButton}>
+                      Profile
                     </Button>
                   </Link>
                 </div>

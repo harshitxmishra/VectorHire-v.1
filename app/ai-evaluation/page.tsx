@@ -100,20 +100,25 @@ function ResumeMatcher() {
               flexDirection: 'column',
               gap: tokens.spacingVerticalM,
               padding: tokens.spacingVerticalL,
-              backgroundColor: 'rgba(30, 41, 59, 0.7)',
+              backgroundColor: tokens.colorNeutralBackground1,
               borderRadius: tokens.borderRadiusMedium,
-              border: '1px solid rgba(148, 163, 184, 0.15)',
+              border: `1px solid ${tokens.colorNeutralStroke2}`,
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: tokens.fontSizeBase400, color: '#f8fafc' }}>
+                <span style={{ fontWeight: 700, fontSize: tokens.fontSizeBase400, color: tokens.colorNeutralForeground1 }}>
                   Match Score:
                 </span>
                 <Badge
                   appearance="filled"
                   style={{
-                    backgroundColor: result.matchPercentage >= 80 ? '#22c55e' : result.matchPercentage >= 65 ? '#eab308' : '#ef4444',
+                    backgroundColor:
+                      result.matchPercentage >= 80
+                        ? tokens.colorPaletteGreenBackground3
+                        : result.matchPercentage >= 65
+                        ? tokens.colorPaletteYellowBackground3
+                        : tokens.colorPaletteRedBackground3,
                     fontWeight: 700,
                     fontSize: '14px',
                     padding: '6px 12px',
@@ -125,12 +130,20 @@ function ResumeMatcher() {
             </div>
 
             <div>
-              <div style={{ fontSize: tokens.fontSizeBase200, fontWeight: 600, marginBottom: '6px', color: '#94a3b8' }}>
+              <div style={{ fontSize: tokens.fontSizeBase200, fontWeight: 600, marginBottom: '6px', color: tokens.colorNeutralForeground3 }}>
                 Matched Skills:
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                 {result.matchedSkills.map((s) => (
-                  <Tag key={s} appearance="filled" style={{ backgroundColor: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.4)' }}>
+                  <Tag
+                    key={s}
+                    appearance="filled"
+                    style={{
+                      backgroundColor: tokens.colorNeutralBackground3,
+                      color: tokens.colorPaletteGreenForeground1,
+                      border: `1px solid ${tokens.colorNeutralStroke2}`,
+                    }}
+                  >
                     ✓ {s}
                   </Tag>
                 ))}
@@ -139,12 +152,20 @@ function ResumeMatcher() {
 
             {result.missingSkills.length > 0 && (
               <div>
-                <div style={{ fontSize: tokens.fontSizeBase200, fontWeight: 600, marginBottom: '6px', color: '#94a3b8' }}>
+                <div style={{ fontSize: tokens.fontSizeBase200, fontWeight: 600, marginBottom: '6px', color: tokens.colorNeutralForeground3 }}>
                   Missing / Skill Gaps:
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {result.missingSkills.map((s) => (
-                    <Tag key={s} appearance="filled" style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                    <Tag
+                      key={s}
+                      appearance="filled"
+                      style={{
+                        backgroundColor: tokens.colorNeutralBackground3,
+                        color: tokens.colorPaletteRedForeground1,
+                        border: `1px solid ${tokens.colorNeutralStroke2}`,
+                      }}
+                    >
                       ✕ {s}
                     </Tag>
                   ))}
@@ -152,22 +173,22 @@ function ResumeMatcher() {
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacingHorizontalM, paddingTop: tokens.spacingVerticalS, borderTop: '1px solid rgba(148, 163, 184, 0.1)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacingHorizontalM, paddingTop: tokens.spacingVerticalS, borderTop: `1px solid ${tokens.colorNeutralStroke2}` }}>
               <div>
-                <span style={{ fontSize: tokens.fontSizeBase200, color: '#94a3b8', display: 'block' }}>Experience Alignment:</span>
-                <span style={{ fontWeight: 600, color: '#f1f5f9' }}>{result.experienceMatch}</span>
+                <span style={{ fontSize: tokens.fontSizeBase200, color: tokens.colorNeutralForeground3, display: 'block' }}>Experience Alignment:</span>
+                <span style={{ fontWeight: 600, color: tokens.colorNeutralForeground1 }}>{result.experienceMatch}</span>
               </div>
               <div>
-                <span style={{ fontSize: tokens.fontSizeBase200, color: '#94a3b8', display: 'block' }}>Education Match:</span>
-                <span style={{ fontWeight: 600, color: '#f1f5f9' }}>{result.educationMatch}</span>
+                <span style={{ fontSize: tokens.fontSizeBase200, color: tokens.colorNeutralForeground3, display: 'block' }}>Education Match:</span>
+                <span style={{ fontWeight: 600, color: tokens.colorNeutralForeground1 }}>{result.educationMatch}</span>
               </div>
             </div>
 
-            <div style={{ padding: tokens.spacingVerticalM, backgroundColor: 'rgba(15, 23, 42, 0.8)', borderRadius: tokens.borderRadiusSmall, borderLeft: '3px solid #6366f1' }}>
-              <span style={{ fontSize: tokens.fontSizeBase200, color: '#818cf8', fontWeight: 600, display: 'block', marginBottom: '2px' }}>
+            <div style={{ padding: tokens.spacingVerticalM, backgroundColor: tokens.colorBrandBackground2, borderRadius: tokens.borderRadiusSmall, borderLeft: `3px solid ${tokens.colorBrandBackground}` }}>
+              <span style={{ fontSize: tokens.fontSizeBase200, color: tokens.colorBrandForeground1, fontWeight: 600, display: 'block', marginBottom: '2px' }}>
                 AI Recommendation:
               </span>
-              <span style={{ color: '#cbd5e1', fontSize: tokens.fontSizeBase300 }}>
+              <span style={{ color: tokens.colorNeutralForeground1, fontSize: tokens.fontSizeBase300 }}>
                 {result.recommendation}
               </span>
             </div>
@@ -202,8 +223,9 @@ const useStyles = makeStyles({
     paddingBottom: tokens.spacingVerticalM,
     paddingLeft: tokens.spacingHorizontalL,
     paddingRight: tokens.spacingHorizontalL,
-    backgroundColor: tokens.colorNeutralBackground2,
-    borderRadius: tokens.borderRadiusSmall,
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderRadius: tokens.borderRadiusMedium,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
     borderLeft: `4px solid ${tokens.colorBrandBackground}`,
   },
   summary: {

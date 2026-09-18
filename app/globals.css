@@ -1,18 +1,24 @@
 /* Fluent UI v9 styles components via Griffel (CSS-in-JS).
-   Global CSS stays minimal: a reset and full-height shell only.
-   All colors, typography, and spacing come from Fluent design tokens. */
+   Global CSS establishes a pristine base reset, smooth typography, and unobtrusive scrollbars. */
 
 html,
 body {
   margin: 0;
   padding: 0;
   height: 100%;
+  overflow: hidden;
   font-family:
-    "Segoe UI Variable Text",
-    "Segoe UI",
     -apple-system,
     BlinkMacSystemFont,
+    "Segoe UI Variable Text",
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
     sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 * {
@@ -21,8 +27,44 @@ body {
 
 #__fluent-root {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 a {
   color: inherit;
+  text-decoration: none;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Unobtrusive, Theme-Aware Native Scrollbars                                 */
+/* Eliminates 3-sided border boxes and wide grey gutters                      */
+/* -------------------------------------------------------------------------- */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 9999px;
+  border: 1px solid transparent;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }

@@ -37,10 +37,9 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     minWidth: '280px',
     maxWidth: '280px',
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    backdropFilter: 'blur(12px)',
+    backgroundColor: tokens.colorNeutralBackground2,
     borderRadius: tokens.borderRadiusLarge,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.12)'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
     padding: tokens.spacingVerticalM,
     gap: tokens.spacingVerticalM,
   },
@@ -64,7 +63,7 @@ const useStyles = makeStyles({
     paddingTop: '2px',
     paddingBottom: '2px',
     borderRadius: tokens.borderRadiusCircular,
-    backgroundColor: 'rgba(30, 41, 59, 0.8)',
+    backgroundColor: tokens.colorNeutralBackground3,
     fontSize: tokens.fontSizeBase100,
     fontWeight: 700,
     color: tokens.colorNeutralForeground1,
@@ -82,16 +81,14 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: tokens.spacingVerticalS,
     padding: tokens.spacingVerticalM,
-    backgroundColor: 'rgba(30, 41, 59, 0.75)',
+    backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.15)'),
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)',
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
     transition: `all ${tokens.durationFast} ${tokens.curveEasyEase}`,
     ':hover': {
-      backgroundColor: 'rgba(39, 54, 78, 0.9)',
-      ...shorthands.borderColor('rgba(129, 140, 248, 0.4)'),
+      backgroundColor: tokens.colorNeutralBackground1Hover,
+      ...shorthands.borderColor(tokens.colorNeutralStroke1Hover),
       transform: 'translateY(-2px)',
-      boxShadow: '0 8px 12px -2px rgba(0, 0, 0, 0.35)',
     },
   },
   cardHeader: {
@@ -121,7 +118,7 @@ const useStyles = makeStyles({
     justifyContent: 'space-between',
     marginTop: tokens.spacingVerticalXS,
     paddingTop: tokens.spacingVerticalXS,
-    borderTop: `1px solid rgba(148, 163, 184, 0.1)`,
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   scoreBadge: {
     fontWeight: 700,
@@ -131,7 +128,7 @@ const useStyles = makeStyles({
     textAlign: 'center',
     color: tokens.colorNeutralForeground4,
     fontSize: tokens.fontSizeBase200,
-    ...shorthands.border('1px', 'dashed', 'rgba(148, 163, 184, 0.1)'),
+    ...shorthands.border('1px', 'dashed', tokens.colorNeutralStroke2),
     borderRadius: tokens.borderRadiusMedium,
   },
 });
@@ -162,9 +159,9 @@ export function CandidateKanban({
   const styles = useStyles();
 
   const getStageColor = (score: number) => {
-    if (score >= 85) return '#22c55e';
-    if (score >= 70) return '#eab308';
-    return '#94a3b8';
+    if (score >= 85) return tokens.colorPaletteGreenForeground1;
+    if (score >= 70) return tokens.colorPaletteYellowForeground1;
+    return tokens.colorNeutralForeground3;
   };
 
   return (

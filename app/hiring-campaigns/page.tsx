@@ -47,14 +47,13 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: tokens.spacingVerticalM,
     padding: tokens.spacingVerticalL,
-    backgroundColor: 'rgba(15, 23, 42, 0.7)',
-    backdropFilter: 'blur(16px)',
-    borderRadius: tokens.borderRadiusLarge,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.14)'),
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)',
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderRadius: tokens.borderRadiusMedium,
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
     transition: `all ${tokens.durationFast}`,
     ':hover': {
-      ...shorthands.borderColor('rgba(129, 140, 248, 0.35)'),
+      backgroundColor: tokens.colorNeutralBackground1Hover,
+      ...shorthands.borderColor(tokens.colorNeutralStroke1Hover),
       transform: 'translateY(-2px)',
     },
   },
@@ -253,7 +252,7 @@ export default function HiringCampaignsPage() {
                   <ProgressBar value={progress / 100} color="brand" />
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(148, 163, 184, 0.1)', paddingTop: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${tokens.colorNeutralStroke2}`, paddingTop: '8px' }}>
                   <span className={styles.metaText}>
                     <Calendar20Regular /> Target: {new Date(camp.deadline).toLocaleDateString()}
                   </span>

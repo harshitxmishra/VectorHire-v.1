@@ -58,9 +58,9 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: tokens.spacingVerticalM,
     padding: tokens.spacingVerticalL,
-    backgroundColor: 'rgba(30, 41, 59, 0.75)',
+    backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: tokens.borderRadiusLarge,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.2)'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
   },
   formActions: {
     display: 'flex',
@@ -77,15 +77,14 @@ const useStyles = makeStyles({
     justifyContent: 'space-between',
     gap: tokens.spacingVerticalM,
     padding: tokens.spacingVerticalL,
-    backgroundColor: 'rgba(30, 41, 59, 0.65)',
+    backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.12)'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
     transition: `all ${tokens.durationFast}`,
     ':hover': {
-      backgroundColor: 'rgba(39, 54, 78, 0.85)',
-      ...shorthands.borderColor('rgba(129, 140, 248, 0.4)'),
+      backgroundColor: tokens.colorNeutralBackground1Hover,
+      ...shorthands.borderColor(tokens.colorNeutralStroke1Hover),
       transform: 'translateY(-2px)',
-      boxShadow: '0 8px 16px -4px rgba(0, 0, 0, 0.3)',
     },
   },
   jdHeader: {
@@ -114,7 +113,7 @@ const useStyles = makeStyles({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: tokens.spacingVerticalS,
-    borderTop: '1px solid rgba(148, 163, 184, 0.1)',
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
   },
 });
 

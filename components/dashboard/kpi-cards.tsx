@@ -1,35 +1,58 @@
 'use client';
 
-import { makeStyles, tokens } from '@fluentui/react-components';
+import { makeStyles, Button, tokens } from '@fluentui/react-components';
 import { StatCard } from '@/components/ui/stat-card';
 import { KPIData } from '@/lib/types';
 import {
-  People24Regular,
-  CheckmarkCircle24Regular,
-  Clock24Regular,
-  Star24Regular,
-  Trophy24Regular,
-  BuildingBank24Regular,
-  MailRegular,
-  TaskListSquareLtr24Regular,
-  CalendarAgenda24Regular,
-  MoneyRegular,
-  ArrowTrendingRegular,
-  CalendarWeekStart24Regular,
+  People16Regular,
+  CheckmarkCircle16Regular,
+  Clock16Regular,
+  Star16Regular,
+  Trophy16Regular,
+  BuildingBank16Regular,
+  Mail16Regular,
+  Calendar16Regular,
+  ArrowTrending16Regular,
+  ChevronDown16Regular,
+  ChevronUp16Regular,
 } from '@fluentui/react-icons';
+import { useState } from 'react';
 
 const useStyles = makeStyles({
-  grid: {
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  primaryGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-    gap: tokens.spacingVerticalL,
-    marginBottom: tokens.spacingVerticalXL,
-    '@media (max-width: 1200px)': {
-      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '12px',
+    '@media (max-width: 1024px)': {
+      gridTemplateColumns: 'repeat(2, 1fr)',
     },
-    '@media (max-width: 768px)': {
-      gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+    '@media (max-width: 600px)': {
+      gridTemplateColumns: '1fr',
     },
+  },
+  secondaryGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '12px',
+    '@media (max-width: 1024px)': {
+      gridTemplateColumns: 'repeat(2, 1fr)',
+    },
+    '@media (max-width: 600px)': {
+      gridTemplateColumns: '1fr',
+    },
+  },
+  toggleRow: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+  },
+  toggleButton: {
+    fontSize: '11px',
+    color: tokens.colorNeutralForeground3,
   },
 });
 
@@ -40,94 +63,103 @@ interface KPICardsProps {
 
 export function KPICards({ data, isLoading }: KPICardsProps) {
   const styles = useStyles();
+  const [showAll, setShowAll] = useState(false);
 
-  const cards = [
+  const primaryCards = [
     {
-      title: 'Total Candidates',
+      title: 'Total Pipeline',
       value: data.totalCandidates,
-      icon: <People24Regular />,
-      tooltip: 'All candidates across all campaigns',
+      icon: <People16Regular />,
+      tooltip: 'All candidate profiles active in workspace',
     },
     {
       title: 'Shortlisted',
       value: data.shortlisted,
-      icon: <CheckmarkCircle24Regular />,
-      tooltip: 'Candidates moved to shortlist stage',
+      icon: <CheckmarkCircle16Regular />,
+      tooltip: 'Candidates qualified and advanced to shortlist',
     },
     {
       title: 'Pending Review',
       value: data.pendingReview,
-      icon: <Clock24Regular />,
-      tooltip: 'Candidates awaiting next step',
+      icon: <Clock16Regular />,
+      tooltip: 'Applicants awaiting recruiter action',
     },
     {
-      title: 'Average AI Score',
+      title: 'Avg AI Match',
       value: `${data.averageAIScore}%`,
-      icon: <Star24Regular />,
-      tooltip: 'Average AI match score across all candidates',
+      icon: <Star16Regular />,
+      tooltip: 'Mean automated match score across current candidates',
     },
+  ];
+
+  const secondaryCards = [
     {
-      title: 'High Scorers',
+      title: 'Top Scorers (85%+)',
       value: data.highScorers,
-      icon: <Trophy24Regular />,
-      tooltip: 'Candidates with an AI score of 85 or higher',
+      icon: <Trophy16Regular />,
+      tooltip: 'Candidates meeting high technical benchmark',
     },
     {
-      title: 'Top College',
-      value: data.topCollege,
-      icon: <BuildingBank24Regular />,
-      tooltip: 'College with the most applicants',
+      title: 'Interviews Scheduled',
+      value: data.upcomingInterviews,
+      icon: <Calendar16Regular />,
+      tooltip: 'Upcoming interview sessions',
     },
     {
       title: 'Assessments Pending',
       value: data.assessmentsPending,
-      icon: <MailRegular />,
-      tooltip: 'Assessments sent, awaiting completion',
+      icon: <Mail16Regular />,
+      tooltip: 'Candidates with dispatched assessments',
     },
     {
-      title: 'Assessments Completed',
-      value: data.assessmentsCompleted,
-      icon: <TaskListSquareLtr24Regular />,
-      tooltip: 'Candidates with completed assessments',
-    },
-    {
-      title: 'Upcoming Interviews',
-      value: data.upcomingInterviews,
-      icon: <CalendarAgenda24Regular />,
-      tooltip: 'Interviews scheduled in the future',
-    },
-    {
-      title: 'Interviews This Week',
-      value: data.interviewsThisWeek,
-      icon: <CalendarWeekStart24Regular />,
-      tooltip: 'Interviews scheduled in the next 7 days',
-    },
-    {
-      title: 'Offers',
-      value: data.offers,
-      icon: <MoneyRegular />,
-      tooltip: 'Candidates with an offer extended',
-    },
-    {
-      title: 'Hire Rate',
+      title: 'Pipeline Yield',
       value: `${data.hireRate}%`,
-      icon: <ArrowTrendingRegular />,
-      tooltip: 'Percentage of candidates hired',
+      icon: <ArrowTrending16Regular />,
+      tooltip: 'Conversion rate from applicant to hire',
     },
   ];
 
   return (
-    <div className={styles.grid}>
-      {cards.map((card) => (
-        <StatCard
-          key={card.title}
-          title={card.title}
-          value={card.value}
-          icon={card.icon}
-          tooltip={card.tooltip}
-          isLoading={isLoading}
-        />
-      ))}
+    <div className={styles.root}>
+      <div className={styles.primaryGrid}>
+        {primaryCards.map((card) => (
+          <StatCard
+            key={card.title}
+            title={card.title}
+            value={card.value}
+            icon={card.icon}
+            tooltip={card.tooltip}
+            isLoading={isLoading}
+          />
+        ))}
+      </div>
+
+      {showAll && (
+        <div className={styles.secondaryGrid}>
+          {secondaryCards.map((card) => (
+            <StatCard
+              key={card.title}
+              title={card.title}
+              value={card.value}
+              icon={card.icon}
+              tooltip={card.tooltip}
+              isLoading={isLoading}
+            />
+          ))}
+        </div>
+      )}
+
+      <div className={styles.toggleRow}>
+        <Button
+          appearance="subtle"
+          size="small"
+          className={styles.toggleButton}
+          icon={showAll ? <ChevronUp16Regular /> : <ChevronDown16Regular />}
+          onClick={() => setShowAll(!showAll)}
+        >
+          {showAll ? 'Show fewer metrics' : 'Show operational metrics (4 more)'}
+        </Button>
+      </div>
     </div>
   );
 }

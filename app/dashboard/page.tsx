@@ -12,8 +12,6 @@ import {
   makeStyles,
   tokens,
   shorthands,
-  Title2,
-  Caption1,
   Button,
   MessageBar,
   MessageBarBody,
@@ -21,11 +19,11 @@ import {
   Spinner,
 } from '@fluentui/react-components';
 import {
-  ArrowClockwiseRegular,
-  PeopleRegular,
-  DocumentTextRegular,
-  CalendarRegular,
-  WindowAd24Regular,
+  ArrowClockwise16Regular,
+  People16Regular,
+  DocumentText16Regular,
+  Calendar16Regular,
+  WindowAd20Regular,
 } from '@fluentui/react-icons';
 import Link from 'next/link';
 import { useAppData } from '@/lib/hooks/use-app-data';
@@ -36,55 +34,74 @@ const useStyles = makeStyles({
   container: {
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalXL,
+    gap: '20px',
   },
   headerBanner: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: tokens.spacingHorizontalM,
-    padding: tokens.spacingVerticalL,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    backdropFilter: 'blur(16px)',
-    borderRadius: tokens.borderRadiusLarge,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.14)'),
+    gap: '16px',
+    padding: '16px 20px',
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderRadius: tokens.borderRadiusMedium,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   headerTitleGroup: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '4px',
+    gap: '3px',
   },
   titleRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: tokens.spacingHorizontalM,
+    gap: '10px',
     flexWrap: 'wrap',
+  },
+  bannerTitle: {
+    fontSize: '18px',
+    fontWeight: 650,
+    letterSpacing: '-0.02em',
+    color: tokens.colorNeutralForeground1,
+  },
+  bannerSubtitle: {
+    fontSize: '12px',
+    color: tokens.colorNeutralForeground3,
   },
   headerActions: {
     display: 'flex',
     alignItems: 'center',
-    gap: tokens.spacingHorizontalS,
+    gap: '8px',
     flexWrap: 'wrap',
+  },
+  actionButton: {
+    fontSize: '12px',
   },
   commandGrid: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
-    gap: tokens.spacingVerticalXL,
-    '@media (max-width: 1100px)': {
+    gap: '20px',
+    '@media (max-width: 1024px)': {
       gridTemplateColumns: '1fr',
     },
   },
   column: {
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalXL,
+    gap: '20px',
+  },
+  sectionHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: '8px',
+    marginBottom: '4px',
   },
   sectionTitle: {
-    fontSize: tokens.fontSizeBase500,
-    fontWeight: 700,
+    fontSize: '14px',
+    fontWeight: 650,
+    letterSpacing: '-0.01em',
     color: tokens.colorNeutralForeground1,
-    marginBottom: tokens.spacingVerticalM,
   },
 });
 
@@ -127,48 +144,50 @@ export default function DashboardPage() {
         <div className={styles.headerBanner}>
           <div className={styles.headerTitleGroup}>
             <div className={styles.titleRow}>
-              <WindowAd24Regular style={{ color: '#818cf8', fontSize: '28px' }} />
-              <Title2 style={{ margin: 0 }}>Recruiter Command Center</Title2>
+              <WindowAd20Regular style={{ color: tokens.colorBrandForeground1 }} />
+              <span className={styles.bannerTitle}>Recruiter Command Center</span>
               <Badge appearance="tint" color="brand">
                 Live Node
               </Badge>
             </div>
-            <Caption1 style={{ color: tokens.colorNeutralForeground3 }}>
-              Continuous talent intelligence, actionable pipeline stages, interview scheduling, and recruitment matching.
-            </Caption1>
+            <span className={styles.bannerSubtitle}>
+              Continuous talent intelligence, pipeline stages, interview coordination, and AI skill matching.
+            </span>
           </div>
 
           <div className={styles.headerActions}>
             <Link href="/candidates" style={{ textDecoration: 'none' }}>
-              <Button appearance="secondary" icon={<PeopleRegular />}>
+              <Button size="small" appearance="secondary" icon={<People16Regular />} className={styles.actionButton}>
                 Candidates
               </Button>
             </Link>
 
             <Link href="/job-descriptions" style={{ textDecoration: 'none' }}>
-              <Button appearance="secondary" icon={<DocumentTextRegular />}>
+              <Button size="small" appearance="secondary" icon={<DocumentText16Regular />} className={styles.actionButton}>
                 Jobs & Matching
               </Button>
             </Link>
 
             <Link href="/interview-scheduling" style={{ textDecoration: 'none' }}>
-              <Button appearance="secondary" icon={<CalendarRegular />}>
+              <Button size="small" appearance="secondary" icon={<Calendar16Regular />} className={styles.actionButton}>
                 Interviews
               </Button>
             </Link>
 
             <Button
+              size="small"
               appearance="primary"
-              icon={refreshing ? <Spinner size="tiny" /> : <ArrowClockwiseRegular />}
+              icon={refreshing ? <Spinner size="tiny" /> : <ArrowClockwise16Regular />}
               disabled={loading || refreshing}
               onClick={handleRefresh}
+              className={styles.actionButton}
             >
-              {refreshing ? 'Refreshing...' : 'Refresh Pipeline'}
+              {refreshing ? 'Syncing...' : 'Sync Pipeline'}
             </Button>
           </div>
         </div>
 
-        {/* Top-Level KPI Metric Cards */}
+        {/* Primary KPI Metric Strip */}
         <div>
           <KPICards data={kpis} isLoading={loading} />
         </div>
@@ -183,7 +202,7 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Command Center 2-Column Grid */}
+        {/* 2-Column Command Grid */}
         <div className={styles.commandGrid}>
           {/* Left Column: Upcoming Interviews + Priority Candidates */}
           <div className={styles.column}>
@@ -214,7 +233,9 @@ export default function DashboardPage() {
 
         {/* Bottom Section: Pipeline Analytics & Talent Yield */}
         <div>
-          <div className={styles.sectionTitle}>Talent Analytics & Yield</div>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionTitle}>Talent Analytics & Yield Distribution</span>
+          </div>
           <AnalyticsSection
             candidates={candidates}
             collegeGroups={collegeGroups}

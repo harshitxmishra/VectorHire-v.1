@@ -1,55 +1,52 @@
 'use client';
 
 import {
-  Body1Strong,
   Button,
   Caption1,
   makeStyles,
   shorthands,
   tokens,
 } from '@fluentui/react-components';
-import { ArrowDownload24Regular } from '@fluentui/react-icons';
+import { ArrowDownload16Regular } from '@fluentui/react-icons';
 import { ReactNode } from 'react';
 
 const useStyles = makeStyles({
   root: {
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalL,
-    padding: tokens.spacingVerticalXL,
+    gap: '16px',
+    padding: '20px',
     backgroundColor: tokens.colorNeutralBackground1,
     border: `1px solid ${tokens.colorNeutralStroke2}`,
-    borderRadius: tokens.borderRadiusXLarge,
-    boxShadow: tokens.shadow8,
-    transition: `all ${tokens.durationNormal} ${tokens.curveEasyEase}`,
+    borderRadius: tokens.borderRadiusMedium,
+    transition: `border-color ${tokens.durationFast} ${tokens.curveEasyEase}`,
     ':hover': {
       ...shorthands.borderColor(tokens.colorNeutralStroke1),
-      boxShadow: tokens.shadow16,
-      transform: 'translateY(-2px)',
     },
   },
   header: {
     display: 'flex',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: tokens.spacingHorizontalL,
+    gap: '16px',
   },
   titleBlock: {
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalXS,
+    gap: '2px',
   },
   title: {
-    fontSize: tokens.fontSizeBase400,
+    fontSize: '14px',
     fontWeight: 650,
     letterSpacing: '-0.01em',
     color: tokens.colorNeutralForeground1,
   },
   caption: {
+    fontSize: '11px',
     color: tokens.colorNeutralForeground3,
   },
   content: {
-    minHeight: '300px',
+    minHeight: '260px',
     display: 'flex',
     alignItems: 'stretch',
     justifyContent: 'stretch',
@@ -77,7 +74,7 @@ export function ChartContainer({
     <div className={styles.root}>
       <div className={styles.header}>
         <div className={styles.titleBlock}>
-          <Body1Strong className={styles.title}>{title}</Body1Strong>
+          <span className={styles.title}>{title}</span>
           {subtitle ? (
             <Caption1 className={styles.caption}>{subtitle}</Caption1>
           ) : null}
@@ -87,7 +84,7 @@ export function ChartContainer({
             appearance="subtle"
             size="small"
             onClick={onExport}
-            icon={<ArrowDownload24Regular />}
+            icon={<ArrowDownload16Regular />}
           >
             Export
           </Button>

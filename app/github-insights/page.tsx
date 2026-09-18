@@ -1,7 +1,7 @@
 'use client';
 
 import { MainLayout } from '@/components/layout/main-layout';
-import { Title2, Badge, Button, Input, Body1, MessageBar, MessageBarBody, makeStyles, tokens } from '@fluentui/react-components';
+import { Title2, Badge, Button, Input, Body1, MessageBar, MessageBarBody, makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { ArrowSyncRegular, SearchRegular } from '@fluentui/react-icons';
 import { ChartContainer } from '@/components/ui/chart-container';
 import { useCallback, useEffect, useState } from 'react';
@@ -19,8 +19,16 @@ const useStyles = makeStyles({
     flexWrap: 'wrap',
     gap: tokens.spacingVerticalS,
     padding: tokens.spacingVerticalM,
-    backgroundColor: tokens.colorNeutralBackground2,
-    borderRadius: tokens.borderRadiusSmall,
+    paddingLeft: tokens.spacingHorizontalL,
+    paddingRight: tokens.spacingHorizontalL,
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderRadius: tokens.borderRadiusMedium,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    transition: `all ${tokens.durationFast}`,
+    ':hover': {
+      backgroundColor: tokens.colorNeutralBackground1Hover,
+      ...shorthands.borderColor(tokens.colorNeutralStroke1Hover),
+    },
   },
   meta: { fontSize: tokens.fontSizeBase200, color: tokens.colorNeutralForeground3 },
   name: { fontWeight: 600, color: tokens.colorNeutralForeground1 },

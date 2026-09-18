@@ -73,10 +73,9 @@ const useStyles = makeStyles({
     gap: tokens.spacingHorizontalM,
     flexWrap: 'wrap',
     padding: tokens.spacingVerticalL,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    backdropFilter: 'blur(16px)',
+    backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: tokens.borderRadiusLarge,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.14)'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
   },
   headerProfile: {
     display: 'flex',
@@ -88,14 +87,14 @@ const useStyles = makeStyles({
     width: '56px',
     height: '56px',
     borderRadius: '50%',
-    backgroundColor: 'rgba(99, 102, 241, 0.2)',
-    ...shorthands.border('2px', 'solid', '#818cf8'),
+    backgroundColor: tokens.colorBrandBackground2,
+    ...shorthands.border('2px', 'solid', tokens.colorBrandStroke1),
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     fontSize: '22px',
     fontWeight: 700,
-    color: '#818cf8',
+    color: tokens.colorBrandForeground1,
   },
   headerActions: {
     display: 'flex',
@@ -110,9 +109,9 @@ const useStyles = makeStyles({
   },
   metricCard: {
     padding: tokens.spacingVerticalM,
-    backgroundColor: 'rgba(30, 41, 59, 0.5)',
+    backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.1)'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
     display: 'flex',
     flexDirection: 'column',
     gap: '4px',
@@ -132,18 +131,18 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: tokens.spacingVerticalM,
     padding: tokens.spacingVerticalL,
-    backgroundColor: 'rgba(30, 41, 59, 0.4)',
+    backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: tokens.borderRadiusLarge,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.1)'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
   },
   subPanel: {
     display: 'flex',
     flexDirection: 'column',
     gap: tokens.spacingVerticalM,
     padding: tokens.spacingVerticalM,
-    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    backgroundColor: tokens.colorNeutralBackground2,
     borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.08)'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
   },
   infoGrid: {
     display: 'grid',
@@ -155,7 +154,7 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: '4px',
     padding: '8px 0',
-    borderBottom: '1px solid rgba(148, 163, 184, 0.08)',
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   infoLabel: {
     fontSize: tokens.fontSizeBase100,
@@ -171,11 +170,11 @@ const useStyles = makeStyles({
     display: 'flex',
     gap: tokens.spacingHorizontalM,
     padding: '12px 0',
-    borderBottom: '1px solid rgba(148, 163, 184, 0.08)',
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   timelineIcon: {
     marginTop: '2px',
-    color: '#818cf8',
+    color: tokens.colorBrandForeground1,
     fontSize: '20px',
   },
   asyncStatusChip: {
@@ -194,9 +193,9 @@ const useStyles = makeStyles({
     flexWrap: 'wrap',
     gap: tokens.spacingVerticalS,
     padding: tokens.spacingVerticalM,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    backgroundColor: tokens.colorNeutralBackground2,
     borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.1)'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
   },
   emailRow: {
     display: 'flex',
@@ -205,9 +204,9 @@ const useStyles = makeStyles({
     flexWrap: 'wrap',
     gap: tokens.spacingHorizontalM,
     padding: '12px 16px',
-    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    backgroundColor: tokens.colorNeutralBackground2,
     borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.08)'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
   },
   drawerBody: {
     display: 'flex',
@@ -771,10 +770,10 @@ function CandidateDetailContent() {
               style={{
                 color:
                   (candidate.ai_score ?? 0) >= 80
-                    ? '#34d399'
+                    ? tokens.colorPaletteGreenForeground1
                     : (candidate.ai_score ?? 0) >= 60
-                    ? '#fbbf24'
-                    : '#f87171',
+                    ? tokens.colorPaletteYellowForeground1
+                    : tokens.colorPaletteRedForeground1,
               }}
             >
               {candidate.ai_score !== null && candidate.ai_score !== undefined
@@ -790,10 +789,10 @@ function CandidateDetailContent() {
               style={{
                 color:
                   (candidate.github_score ?? 0) >= 80
-                    ? '#34d399'
+                    ? tokens.colorPaletteGreenForeground1
                     : (candidate.github_score ?? 0) >= 60
-                    ? '#fbbf24'
-                    : '#f87171',
+                    ? tokens.colorPaletteYellowForeground1
+                    : tokens.colorPaletteRedForeground1,
               }}
             >
               {candidate.github_score !== null && candidate.github_score !== undefined
@@ -828,9 +827,9 @@ function CandidateDetailContent() {
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '12px 16px',
-            backgroundColor: 'rgba(30, 41, 59, 0.5)',
+            backgroundColor: tokens.colorNeutralBackground1,
             borderRadius: tokens.borderRadiusMedium,
-            border: '1px solid rgba(148, 163, 184, 0.1)',
+            border: `1px solid ${tokens.colorNeutralStroke2}`,
             flexWrap: 'wrap',
             gap: '12px',
           }}
@@ -870,22 +869,22 @@ function CandidateDetailContent() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {aiJobState === 'processing' && (
-              <span className={styles.asyncStatusChip} style={{ backgroundColor: 'rgba(99, 102, 241, 0.2)', color: '#818cf8' }}>
+              <span className={styles.asyncStatusChip} style={{ backgroundColor: tokens.colorBrandBackground2, color: tokens.colorBrandForeground1 }}>
                 <Spinner size="extra-tiny" /> AI Processing
               </span>
             )}
             {resumeJobState === 'processing' && (
-              <span className={styles.asyncStatusChip} style={{ backgroundColor: 'rgba(52, 211, 153, 0.2)', color: '#34d399' }}>
+              <span className={styles.asyncStatusChip} style={{ backgroundColor: tokens.colorNeutralBackground3, color: tokens.colorPaletteGreenForeground1 }}>
                 <Spinner size="extra-tiny" /> Resume Processing
               </span>
             )}
             {githubJobState === 'processing' && (
-              <span className={styles.asyncStatusChip} style={{ backgroundColor: 'rgba(251, 191, 36, 0.2)', color: '#fbbf24' }}>
+              <span className={styles.asyncStatusChip} style={{ backgroundColor: tokens.colorNeutralBackground3, color: tokens.colorPaletteYellowForeground1 }}>
                 <Spinner size="extra-tiny" /> GitHub Processing
               </span>
             )}
             {emailJobState === 'processing' && (
-              <span className={styles.asyncStatusChip} style={{ backgroundColor: 'rgba(168, 85, 247, 0.2)', color: '#c084fc' }}>
+              <span className={styles.asyncStatusChip} style={{ backgroundColor: tokens.colorBrandBackground2, color: tokens.colorBrandForeground2 }}>
                 <Spinner size="extra-tiny" /> Sending Email
               </span>
             )}
@@ -973,7 +972,7 @@ function CandidateDetailContent() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: tokens.spacingHorizontalM, marginTop: '16px' }}>
               <div className={styles.subPanel}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 600, color: '#818cf8' }}>Resume Snapshot</span>
+                  <span style={{ fontWeight: 600, color: tokens.colorBrandForeground1 }}>Resume Snapshot</span>
                   <Badge appearance="tint" color={candidate.parsing_status === 'success' ? 'success' : 'informative'}>
                     {candidate.parsing_status || 'not parsed'}
                   </Badge>
@@ -992,7 +991,7 @@ function CandidateDetailContent() {
 
               <div className={styles.subPanel}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 600, color: '#34d399' }}>GitHub Snapshot</span>
+                  <span style={{ fontWeight: 600, color: tokens.colorPaletteGreenForeground1 }}>GitHub Snapshot</span>
                   <Badge appearance="tint" color={ghAnalysis ? 'success' : 'informative'}>
                     {ghAnalysis ? `${ghAnalysis.score}/100` : 'Not analyzed'}
                   </Badge>
@@ -1007,7 +1006,7 @@ function CandidateDetailContent() {
 
               <div className={styles.subPanel}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 600, color: '#c084fc' }}>AI Fit Snapshot</span>
+                  <span style={{ fontWeight: 600, color: tokens.colorBrandForeground2 }}>AI Fit Snapshot</span>
                   <Badge appearance="tint" color={aiEval ? 'success' : 'informative'}>
                     {aiEval ? `${aiEval.score}/100` : 'Not evaluated'}
                   </Badge>
@@ -1044,7 +1043,7 @@ function CandidateDetailContent() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     <div className={styles.infoRow}>
                       <span className={styles.infoLabel}>Overall Recommendation</span>
-                      <span className={styles.infoValue} style={{ color: '#818cf8', fontWeight: 600 }}>
+                      <span className={styles.infoValue} style={{ color: tokens.colorBrandForeground1, fontWeight: 600 }}>
                         {aiEval.recommendation || 'Proceed to interview'}
                       </span>
                     </div>
@@ -1061,7 +1060,7 @@ function CandidateDetailContent() {
                         <span className={styles.infoLabel}>Key Strengths</span>
                         <ul style={{ margin: '8px 0 0 16px', padding: 0 }}>
                           {aiEval.strengths.map((s, idx) => (
-                            <li key={idx} style={{ color: '#34d399', marginBottom: '4px' }}>
+                            <li key={idx} style={{ color: tokens.colorPaletteGreenForeground1, marginBottom: '4px' }}>
                               {s}
                             </li>
                           ))}
@@ -1074,7 +1073,7 @@ function CandidateDetailContent() {
                         <span className={styles.infoLabel}>Potential Gaps / Areas to Probe</span>
                         <ul style={{ margin: '8px 0 0 16px', padding: 0 }}>
                           {aiEval.weaknesses.map((w, idx) => (
-                            <li key={idx} style={{ color: '#fbbf24', marginBottom: '4px' }}>
+                            <li key={idx} style={{ color: tokens.colorPaletteYellowForeground1, marginBottom: '4px' }}>
                               {w}
                             </li>
                           ))}
@@ -1087,7 +1086,7 @@ function CandidateDetailContent() {
                         <span className={styles.infoLabel}>Suggested Technical Interview Questions</span>
                         <ol style={{ margin: '8px 0 0 16px', padding: 0 }}>
                           {aiEval.interviewQuestions.map((q, idx) => (
-                            <li key={idx} style={{ color: '#93c5fd', marginBottom: '6px' }}>
+                            <li key={idx} style={{ color: tokens.colorBrandForeground1, marginBottom: '6px' }}>
                               {q}
                             </li>
                           ))}
@@ -1139,7 +1138,7 @@ function CandidateDetailContent() {
                     {ghAnalysis.portfolioVerdict && (
                       <div className={styles.infoRow}>
                         <span className={styles.infoLabel}>Engineering Portfolio Verdict</span>
-                        <span className={styles.infoValue} style={{ color: '#818cf8', fontWeight: 600 }}>
+                        <span className={styles.infoValue} style={{ color: tokens.colorBrandForeground1, fontWeight: 600 }}>
                           {ghAnalysis.portfolioVerdict}
                         </span>
                       </div>
@@ -1170,7 +1169,7 @@ function CandidateDetailContent() {
                         <span className={styles.infoLabel}>Repository & Commit Highlights</span>
                         <ul style={{ margin: '8px 0 0 16px', padding: 0 }}>
                           {ghAnalysis.highlights.map((h, idx) => (
-                            <li key={idx} style={{ color: '#34d399', marginBottom: '4px' }}>
+                            <li key={idx} style={{ color: tokens.colorPaletteGreenForeground1, marginBottom: '4px' }}>
                               {h}
                             </li>
                           ))}
@@ -1226,14 +1225,15 @@ function CandidateDetailContent() {
                       style={{
                         marginTop: '8px',
                         padding: '16px',
-                        backgroundColor: 'rgba(15, 23, 42, 0.8)',
-                        borderRadius: '8px',
+                        backgroundColor: tokens.colorNeutralBackground3,
+                        borderRadius: tokens.borderRadiusMedium,
+                        border: `1px solid ${tokens.colorNeutralStroke2}`,
                         maxHeight: '400px',
                         overflowY: 'auto',
                         whiteSpace: 'pre-wrap',
                         fontFamily: 'monospace',
                         fontSize: '13px',
-                        color: '#e2e8f0',
+                        color: tokens.colorNeutralForeground1,
                       }}
                     >
                       {candidate.resume_text}
@@ -1352,7 +1352,7 @@ function CandidateDetailContent() {
                   {emailLogs.map((log) => (
                     <div key={log.id} className={styles.emailRow}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <MailRegular style={{ fontSize: '20px', color: '#818cf8' }} />
+                        <MailRegular style={{ fontSize: '20px', color: tokens.colorBrandForeground1 }} />
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ fontWeight: 600, color: tokens.colorNeutralForeground1, textTransform: 'capitalize' }}>
@@ -1369,7 +1369,7 @@ function CandidateDetailContent() {
                             Recipient: {log.recipient} &bull; {log.sent_at ? new Date(log.sent_at).toLocaleString() : new Date(log.created_at).toLocaleString()}
                           </Caption1>
                           {log.error_message && (
-                            <Caption1 style={{ color: '#f87171', display: 'block' }}>Error: {log.error_message}</Caption1>
+                            <Caption1 style={{ color: tokens.colorPaletteRedForeground1, display: 'block' }}>Error: {log.error_message}</Caption1>
                           )}
                         </div>
                       </div>

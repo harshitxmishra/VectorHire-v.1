@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Caption1, makeStyles, tokens } from '@fluentui/react-components';
+import { Button, Caption1, makeStyles, shorthands, tokens } from '@fluentui/react-components';
 import { ChevronLeftRegular, ChevronRightRegular } from '@fluentui/react-icons';
 import { useState } from 'react';
 import { Interview } from '@/lib/types';
@@ -12,13 +12,18 @@ const useStyles = makeStyles({
   cell: {
     minHeight: '72px',
     padding: tokens.spacingVerticalS,
-    borderRadius: tokens.borderRadiusSmall,
-    backgroundColor: tokens.colorNeutralBackground2,
+    borderRadius: tokens.borderRadiusMedium,
+    backgroundColor: tokens.colorNeutralBackground1,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
     cursor: 'pointer',
     display: 'flex',
     flexDirection: 'column',
     gap: tokens.spacingVerticalXS,
-    ':hover': { backgroundColor: tokens.colorNeutralBackground2Hover },
+    transition: `all ${tokens.durationFast}`,
+    ':hover': {
+      backgroundColor: tokens.colorNeutralBackground1Hover,
+      ...shorthands.borderColor(tokens.colorNeutralStroke1Hover),
+    },
   },
   faded: { opacity: 0.35 },
   dot: {

@@ -2,8 +2,6 @@
 
 import {
   Badge,
-  Body2,
-  Caption1,
   Button,
   Spinner,
   makeStyles,
@@ -11,10 +9,9 @@ import {
   shorthands,
 } from '@fluentui/react-components';
 import {
-  People24Regular,
-  OpenRegular,
-  ArrowRightRegular,
-  SparkleRegular,
+  People20Regular,
+  Open16Regular,
+  ArrowRight16Regular,
 } from '@fluentui/react-icons';
 import Link from 'next/link';
 import { Candidate } from '@/lib/types';
@@ -23,27 +20,28 @@ const useStyles = makeStyles({
   container: {
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalM,
-    padding: tokens.spacingVerticalL,
-    backgroundColor: 'rgba(30, 41, 59, 0.65)',
-    borderRadius: tokens.borderRadiusLarge,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.12)'),
+    gap: '12px',
+    padding: '16px 20px',
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderRadius: tokens.borderRadiusMedium,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   header: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: tokens.spacingHorizontalM,
+    gap: '12px',
   },
   titleGroup: {
     display: 'flex',
     alignItems: 'center',
-    gap: tokens.spacingHorizontalS,
+    gap: '8px',
   },
   title: {
-    fontSize: tokens.fontSizeBase400,
-    fontWeight: 700,
+    fontSize: '14px',
+    fontWeight: 650,
+    letterSpacing: '-0.01em',
     color: tokens.colorNeutralForeground1,
   },
   tableWrapper: {
@@ -56,52 +54,59 @@ const useStyles = makeStyles({
     textAlign: 'left',
   },
   th: {
-    padding: '10px 12px',
-    fontSize: tokens.fontSizeBase100,
-    fontWeight: 700,
-    color: tokens.colorNeutralForeground3,
+    padding: '8px 10px',
+    fontSize: '11px',
+    fontWeight: 600,
+    color: tokens.colorNeutralForeground4,
     textTransform: 'uppercase',
     letterSpacing: '0.04em',
-    borderBottom: '1px solid rgba(148, 163, 184, 0.12)',
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   tr: {
-    borderBottom: '1px solid rgba(148, 163, 184, 0.08)',
-    transition: `all ${tokens.durationFast}`,
+    borderBottom: `1px solid ${tokens.colorNeutralStroke3}`,
+    transition: `background-color ${tokens.durationFast}`,
     ':hover': {
-      backgroundColor: 'rgba(15, 23, 42, 0.6)',
+      backgroundColor: tokens.colorNeutralBackground1Hover,
     },
   },
   td: {
-    padding: '12px',
-    fontSize: tokens.fontSizeBase200,
+    padding: '10px',
+    fontSize: '12px',
     color: tokens.colorNeutralForeground2,
     verticalAlign: 'middle',
   },
   candidateName: {
     fontWeight: 600,
-    fontSize: tokens.fontSizeBase300,
+    fontSize: '13px',
     color: tokens.colorNeutralForeground1,
     textDecoration: 'none',
     ':hover': {
-      color: '#818cf8',
+      color: tokens.colorBrandForeground1,
       textDecoration: 'underline',
     },
   },
+  candidateSub: {
+    fontSize: '11px',
+    color: tokens.colorNeutralForeground4,
+  },
   scoreBadge: {
-    fontWeight: 700,
-    fontSize: tokens.fontSizeBase200,
+    fontWeight: 650,
+    fontSize: '12px',
+  },
+  actionButton: {
+    fontSize: '11px',
   },
   emptyState: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: tokens.spacingVerticalS,
-    padding: '32px 16px',
+    gap: '6px',
+    padding: '24px 16px',
     textAlign: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.4)',
-    borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'dashed', 'rgba(148, 163, 184, 0.15)'),
+    backgroundColor: tokens.colorNeutralBackground3,
+    borderRadius: tokens.borderRadiusSmall,
+    border: `1px dashed ${tokens.colorNeutralStroke2}`,
   },
 });
 
@@ -116,57 +121,54 @@ export function PriorityCandidatesWidget({
 }: PriorityCandidatesWidgetProps) {
   const styles = useStyles();
 
-  // Sort by highest AI score (deterministic, transparent ordering)
   const topCandidates = [...candidates]
     .sort((a, b) => (b.ai_score ?? 0) - (a.ai_score ?? 0))
     .slice(0, 6);
 
   const getScoreColor = (score: number | null | undefined) => {
-    if (score === null || score === undefined) return '#94a3b8';
-    if (score >= 80) return '#34d399';
-    if (score >= 60) return '#fbbf24';
-    return '#f87171';
+    if (score === null || score === undefined) return tokens.colorNeutralForeground4;
+    if (score >= 80) return tokens.colorStatusSuccessForeground1;
+    if (score >= 60) return tokens.colorStatusWarningForeground1;
+    return tokens.colorStatusDangerForeground1;
   };
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.titleGroup}>
-          <People24Regular style={{ color: '#818cf8' }} />
+          <People20Regular style={{ color: tokens.colorBrandForeground1 }} />
           <span className={styles.title}>Priority Talent Snapshot</span>
-          <Badge appearance="tint" color="informative">
+          <Badge appearance="tint" color="informative" size="small">
             Top {topCandidates.length}
           </Badge>
         </div>
         <Link href="/candidates" style={{ textDecoration: 'none' }}>
-          <Button appearance="subtle" size="small" icon={<ArrowRightRegular />}>
-            Candidate Directory
+          <Button appearance="subtle" size="small" icon={<ArrowRight16Regular />} className={styles.actionButton}>
+            Directory
           </Button>
         </Link>
       </div>
 
-      <Caption1 style={{ color: tokens.colorNeutralForeground4, display: 'block' }}>
-        * Multi-dimensional candidate signals are shown independently. No composite or weighted formula is applied.
-      </Caption1>
-
       {isLoading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '32px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
           <Spinner size="small" label="Loading talent snapshot..." />
         </div>
       ) : topCandidates.length === 0 ? (
         <div className={styles.emptyState}>
-          <People24Regular style={{ fontSize: '32px', color: '#94a3b8' }} />
-          <Body2 style={{ color: tokens.colorNeutralForeground2, fontWeight: 600 }}>
+          <People20Regular style={{ fontSize: '24px', color: tokens.colorNeutralForeground4 }} />
+          <div style={{ color: tokens.colorNeutralForeground2, fontWeight: 600, fontSize: '12px' }}>
             No candidates in talent pool
-          </Body2>
-          <Caption1 style={{ color: tokens.colorNeutralForeground3 }}>
+          </div>
+          <span style={{ color: tokens.colorNeutralForeground3, fontSize: '11px' }}>
             Upload candidates from the Candidate Directory to populate the workspace.
-          </Caption1>
-          <Link href="/candidates" style={{ textDecoration: 'none' }}>
-            <Button appearance="primary" size="small">
-              Go to Candidates
-            </Button>
-          </Link>
+          </span>
+          <div style={{ marginTop: '8px' }}>
+            <Link href="/candidates" style={{ textDecoration: 'none' }}>
+              <Button appearance="primary" size="small" className={styles.actionButton}>
+                Go to Candidates
+              </Button>
+            </Link>
+          </div>
         </div>
       ) : (
         <div className={styles.tableWrapper}>
@@ -175,10 +177,9 @@ export function PriorityCandidatesWidget({
               <tr>
                 <th className={styles.th}>Candidate</th>
                 <th className={styles.th}>Status</th>
-                <th className={styles.th}>AI Fit</th>
+                <th className={styles.th}>AI Match</th>
                 <th className={styles.th}>GitHub</th>
                 <th className={styles.th}>CGPA</th>
-                <th className={styles.th}>Test Code</th>
                 <th className={styles.th} style={{ textAlign: 'right' }}>Action</th>
               </tr>
             </thead>
@@ -190,13 +191,13 @@ export function PriorityCandidatesWidget({
                       <Link href={`/candidates/${c.id}`} className={styles.candidateName}>
                         {c.full_name}
                       </Link>
-                      <Caption1 style={{ color: tokens.colorNeutralForeground3 }}>
+                      <span className={styles.candidateSub}>
                         {c.college || 'College Unspecified'}
-                      </Caption1>
+                      </span>
                     </div>
                   </td>
                   <td className={styles.td}>
-                    <Badge appearance="tint" color="informative">
+                    <Badge appearance="tint" color="informative" size="small">
                       {c.status || 'Applied'}
                     </Badge>
                   </td>
@@ -225,15 +226,10 @@ export function PriorityCandidatesWidget({
                       {c.cgpa !== null && c.cgpa !== undefined ? c.cgpa : '—'}
                     </span>
                   </td>
-                  <td className={styles.td}>
-                    <span style={{ color: tokens.colorNeutralForeground2 }}>
-                      {c.test_code || '—'}
-                    </span>
-                  </td>
                   <td className={styles.td} style={{ textAlign: 'right' }}>
                     <Link href={`/candidates/${c.id}`} style={{ textDecoration: 'none' }}>
-                      <Button appearance="subtle" size="small" icon={<OpenRegular />}>
-                        Workspace
+                      <Button appearance="subtle" size="small" icon={<Open16Regular />} className={styles.actionButton}>
+                        Profile
                       </Button>
                     </Link>
                   </td>

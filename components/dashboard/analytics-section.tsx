@@ -1,8 +1,7 @@
 'use client';
 
-import { makeStyles, tokens, shorthands, Caption1, Badge } from '@fluentui/react-components';
+import { makeStyles, tokens, shorthands, Badge } from '@fluentui/react-components';
 import { ChartContainer } from '@/components/ui/chart-container';
-import { BadgeStatus } from '@/components/ui/badge-status';
 import { Candidate, CollegeGroup, ScoreBucket } from '@/lib/types';
 import { HiringFunnelChart } from '@/components/analytics/HiringFunnelChart';
 import { ScoreDistributionChart } from '@/components/analytics/ScoreDistributionChart';
@@ -11,31 +10,26 @@ import { CollegeYieldChart } from '@/components/analytics/CollegeYieldChart';
 const useStyles = makeStyles({
   grid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-    gap: tokens.spacingVerticalXL,
-    '@media (max-width: 1200px)': {
-      gridTemplateColumns: '1fr',
-    },
+    gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+    gap: '20px',
   },
   list: {
     display: 'flex',
     flexDirection: 'column',
-    gap: tokens.spacingVerticalM,
+    gap: '8px',
   },
   listItem: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: tokens.spacingVerticalM,
-    paddingBottom: tokens.spacingVerticalM,
-    paddingLeft: tokens.spacingHorizontalL,
-    paddingRight: tokens.spacingHorizontalL,
-    backgroundColor: 'rgba(30, 41, 59, 0.65)',
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.1)'),
-    transition: `all ${tokens.durationFast}`,
+    padding: '10px 14px',
+    backgroundColor: tokens.colorNeutralBackground3,
+    borderRadius: tokens.borderRadiusSmall,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    transition: `border-color ${tokens.durationFast}, background-color ${tokens.durationFast}`,
     ':hover': {
-      backgroundColor: 'rgba(39, 54, 78, 0.85)',
-      ...shorthands.borderColor('rgba(129, 140, 248, 0.3)'),
+      backgroundColor: tokens.colorNeutralBackground3Hover,
+      ...shorthands.borderColor(tokens.colorNeutralStroke1),
     },
   },
   itemContent: {
@@ -46,10 +40,11 @@ const useStyles = makeStyles({
   },
   itemLabel: {
     fontWeight: 600,
+    fontSize: '13px',
     color: tokens.colorNeutralForeground1,
   },
   itemDescription: {
-    fontSize: tokens.fontSizeBase200,
+    fontSize: '11px',
     color: tokens.colorNeutralForeground3,
   },
 });
@@ -96,7 +91,7 @@ export function AnalyticsSection({
 
       {/* AI Score Distribution */}
       <ChartContainer
-        title="AI Score Distribution"
+        title="AI Match Distribution"
         subtitle="Candidates grouped by match score range"
       >
         <ScoreDistributionChart scoreBuckets={scoreBuckets} />
@@ -123,6 +118,7 @@ export function AnalyticsSection({
                 </div>
                 <Badge
                   appearance="tint"
+                  size="small"
                   color={
                     candidate.status?.toLowerCase() === 'hired'
                       ? 'success'

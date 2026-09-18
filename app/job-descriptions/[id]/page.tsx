@@ -52,9 +52,9 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: tokens.spacingVerticalM,
     padding: tokens.spacingVerticalL,
-    backgroundColor: 'rgba(30, 41, 59, 0.75)',
+    backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: tokens.borderRadiusLarge,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.2)'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
   },
   headerTop: {
     display: 'flex',
@@ -70,9 +70,9 @@ const useStyles = makeStyles({
   },
   requirementsBox: {
     padding: tokens.spacingVerticalM,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    backgroundColor: tokens.colorNeutralBackground2,
     borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.1)'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
     fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground2,
     whiteSpace: 'pre-wrap',
@@ -92,9 +92,9 @@ const useStyles = makeStyles({
     padding: tokens.spacingVerticalM,
     paddingLeft: tokens.spacingHorizontalL,
     paddingRight: tokens.spacingHorizontalL,
-    backgroundColor: 'rgba(30, 41, 59, 0.65)',
+    backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.12)'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
   },
   metricValue: {
     fontSize: '28px',
@@ -108,9 +108,9 @@ const useStyles = makeStyles({
     gap: tokens.spacingHorizontalM,
     flexWrap: 'wrap',
     padding: tokens.spacingVerticalM,
-    backgroundColor: 'rgba(30, 41, 59, 0.65)',
+    backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.12)'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
   },
   filterGroup: {
     display: 'flex',
@@ -128,13 +128,13 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: tokens.spacingVerticalM,
     padding: tokens.spacingVerticalL,
-    backgroundColor: 'rgba(30, 41, 59, 0.65)',
+    backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.12)'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
     transition: `all ${tokens.durationFast}`,
     ':hover': {
-      backgroundColor: 'rgba(39, 54, 78, 0.85)',
-      ...shorthands.borderColor('rgba(129, 140, 248, 0.35)'),
+      backgroundColor: tokens.colorNeutralBackground1Hover,
+      ...shorthands.borderColor(tokens.colorNeutralStroke1Hover),
     },
   },
   cardHeader: {
@@ -150,7 +150,7 @@ const useStyles = makeStyles({
     color: tokens.colorNeutralForeground1,
     textDecoration: 'none',
     ':hover': {
-      color: '#818cf8',
+      color: tokens.colorBrandForeground1,
       textDecoration: 'underline',
     },
   },
@@ -159,7 +159,7 @@ const useStyles = makeStyles({
     flexDirection: 'column',
     gap: tokens.spacingVerticalS,
     paddingTop: tokens.spacingVerticalS,
-    borderTop: '1px solid rgba(148, 163, 184, 0.1)',
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
   },
   tagGroup: {
     display: 'flex',
@@ -171,16 +171,16 @@ const useStyles = makeStyles({
     gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
     gap: tokens.spacingHorizontalM,
     padding: tokens.spacingVerticalS,
-    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    backgroundColor: tokens.colorNeutralBackground2,
     borderRadius: tokens.borderRadiusSmall,
   },
   recommendationBox: {
     padding: tokens.spacingVerticalS,
     paddingLeft: tokens.spacingHorizontalM,
     paddingRight: tokens.spacingHorizontalM,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: tokens.colorBrandBackground2,
     borderRadius: tokens.borderRadiusSmall,
-    borderLeft: '3px solid #6366f1',
+    borderLeft: `3px solid ${tokens.colorBrandBackground}`,
   },
   paginationContainer: {
     display: 'flex',
@@ -198,9 +198,9 @@ const useStyles = makeStyles({
     gap: tokens.spacingVerticalM,
     padding: '48px 24px',
     textAlign: 'center',
-    backgroundColor: 'rgba(30, 41, 59, 0.4)',
+    backgroundColor: tokens.colorNeutralBackground2,
     borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'dashed', 'rgba(148, 163, 184, 0.2)'),
+    ...shorthands.border('1px', 'dashed', tokens.colorNeutralStroke2),
   },
 });
 
@@ -506,7 +506,7 @@ function JobDetailContent() {
             <Caption1 style={{ color: tokens.colorNeutralForeground3, textTransform: 'uppercase', fontWeight: 600 }}>
               Total Matched
             </Caption1>
-            <div className={styles.metricValue} style={{ color: '#818cf8' }}>
+            <div className={styles.metricValue} style={{ color: tokens.colorBrandForeground1 }}>
               {metrics.totalMatches}
             </div>
             <Caption1 style={{ color: tokens.colorNeutralForeground4 }}>
@@ -518,7 +518,7 @@ function JobDetailContent() {
             <Caption1 style={{ color: tokens.colorNeutralForeground3, textTransform: 'uppercase', fontWeight: 600 }}>
               High Matches (≥80%)
             </Caption1>
-            <div className={styles.metricValue} style={{ color: '#34d399' }}>
+            <div className={styles.metricValue} style={{ color: tokens.colorPaletteGreenForeground1 }}>
               {metrics.highMatchCount}
             </div>
             <Caption1 style={{ color: tokens.colorNeutralForeground4 }}>
@@ -530,7 +530,7 @@ function JobDetailContent() {
             <Caption1 style={{ color: tokens.colorNeutralForeground3, textTransform: 'uppercase', fontWeight: 600 }}>
               Average Match Score
             </Caption1>
-            <div className={styles.metricValue} style={{ color: '#fbbf24' }}>
+            <div className={styles.metricValue} style={{ color: tokens.colorPaletteYellowForeground1 }}>
               {metrics.averageMatchScore !== null ? `${metrics.averageMatchScore}%` : 'N/A'}
             </div>
             <Caption1 style={{ color: tokens.colorNeutralForeground4 }}>
@@ -649,7 +649,7 @@ function JobDetailContent() {
             </div>
           ) : matchesError ? (
             <div className={styles.emptyState}>
-              <Title3 style={{ color: '#f87171' }}>Error Loading Matches</Title3>
+              <Title3 style={{ color: tokens.colorPaletteRedForeground1 }}>Error Loading Matches</Title3>
               <Body2>{matchesError}</Body2>
               <Button appearance="primary" onClick={() => loadMatches()}>
                 Retry
@@ -657,7 +657,7 @@ function JobDetailContent() {
             </div>
           ) : candidateCount === 0 ? (
             <div className={styles.emptyState}>
-              <PeopleRegular style={{ fontSize: '48px', color: '#94a3b8' }} />
+              <PeopleRegular style={{ fontSize: '48px', color: tokens.colorNeutralForeground4 }} />
               <Title3>No Candidates in Database</Title3>
               <Body2 style={{ color: tokens.colorNeutralForeground3 }}>
                 Upload candidate datasets from the Candidates page before running job matches.
@@ -668,7 +668,7 @@ function JobDetailContent() {
             </div>
           ) : totalMatchesForJob === 0 ? (
             <div className={styles.emptyState}>
-              <SparkleRegular style={{ fontSize: '48px', color: '#818cf8' }} />
+              <SparkleRegular style={{ fontSize: '48px', color: tokens.colorBrandForeground1 }} />
               <Title3>No Matches Calculated Yet</Title3>
               <Body2 style={{ color: tokens.colorNeutralForeground3 }}>
                 Evaluate candidates against this job description to see ranked match scores and skill overlap.
@@ -684,7 +684,7 @@ function JobDetailContent() {
             </div>
           ) : matches.length === 0 ? (
             <div className={styles.emptyState}>
-              <FilterRegular style={{ fontSize: '48px', color: '#94a3b8' }} />
+              <FilterRegular style={{ fontSize: '48px', color: tokens.colorNeutralForeground4 }} />
               <Title3>No Candidates Meet Current Filter Criteria</Title3>
               <Body2 style={{ color: tokens.colorNeutralForeground3 }}>
                 Try lowering the minimum match score or clearing active search terms.
@@ -758,7 +758,7 @@ function JobDetailContent() {
                       {/* Skills Overlap */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <Caption1 style={{ fontWeight: 600, color: '#94a3b8' }}>Matched Skills:</Caption1>
+                          <Caption1 style={{ fontWeight: 600, color: tokens.colorNeutralForeground3 }}>Matched Skills:</Caption1>
                           <div className={styles.tagGroup}>
                             {Array.isArray(item.matched_skills) && item.matched_skills.length > 0 ? (
                               item.matched_skills.map((s) => (
@@ -766,9 +766,9 @@ function JobDetailContent() {
                                   key={s}
                                   appearance="filled"
                                   style={{
-                                    backgroundColor: 'rgba(34, 197, 94, 0.15)',
-                                    color: '#4ade80',
-                                    border: '1px solid rgba(34, 197, 94, 0.3)',
+                                    backgroundColor: tokens.colorNeutralBackground3,
+                                    color: tokens.colorPaletteGreenForeground1,
+                                    border: `1px solid ${tokens.colorNeutralStroke2}`,
                                   }}
                                 >
                                   ✓ {s}
@@ -782,16 +782,16 @@ function JobDetailContent() {
 
                         {Array.isArray(item.missing_skills) && item.missing_skills.length > 0 && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                            <Caption1 style={{ fontWeight: 600, color: '#94a3b8' }}>Missing Skills:</Caption1>
+                            <Caption1 style={{ fontWeight: 600, color: tokens.colorNeutralForeground3 }}>Missing Skills:</Caption1>
                             <div className={styles.tagGroup}>
                               {item.missing_skills.map((s) => (
                                 <Tag
                                   key={s}
                                   appearance="filled"
                                   style={{
-                                    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-                                    color: '#f87171',
-                                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                                    backgroundColor: tokens.colorNeutralBackground3,
+                                    color: tokens.colorPaletteRedForeground1,
+                                    border: `1px solid ${tokens.colorNeutralStroke2}`,
                                   }}
                                 >
                                   ✕ {s}
@@ -805,13 +805,13 @@ function JobDetailContent() {
                       {/* Alignment Breakdown */}
                       <div className={styles.alignmentGrid}>
                         <div>
-                          <Caption1 style={{ color: '#94a3b8', display: 'block' }}>Experience Alignment</Caption1>
+                          <Caption1 style={{ color: tokens.colorNeutralForeground3, display: 'block' }}>Experience Alignment</Caption1>
                           <Body2 style={{ color: tokens.colorNeutralForeground1, fontWeight: 500 }}>
                             {item.experience_match}
                           </Body2>
                         </div>
                         <div>
-                          <Caption1 style={{ color: '#94a3b8', display: 'block' }}>Education Match</Caption1>
+                          <Caption1 style={{ color: tokens.colorNeutralForeground3, display: 'block' }}>Education Match</Caption1>
                           <Body2 style={{ color: tokens.colorNeutralForeground1, fontWeight: 500 }}>
                             {item.education_match}
                           </Body2>
@@ -821,10 +821,10 @@ function JobDetailContent() {
                       {/* Recommendation */}
                       {item.recommendation && (
                         <div className={styles.recommendationBox}>
-                          <Caption1 style={{ color: '#818cf8', fontWeight: 600, display: 'block' }}>
+                          <Caption1 style={{ color: tokens.colorBrandForeground1, fontWeight: 600, display: 'block' }}>
                             Recruiter Recommendation:
                           </Caption1>
-                          <Body2 style={{ color: '#e2e8f0' }}>{item.recommendation}</Body2>
+                          <Body2 style={{ color: tokens.colorNeutralForeground1 }}>{item.recommendation}</Body2>
                         </div>
                       )}
                     </div>

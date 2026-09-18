@@ -29,29 +29,28 @@ const useStyles = makeStyles({
     paddingLeft: tokens.spacingHorizontalL,
     paddingRight: tokens.spacingHorizontalL,
     borderRadius: tokens.borderRadiusLarge,
-    ...shorthands.border('2px', 'dashed', 'rgba(129, 140, 248, 0.3)'),
-    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    ...shorthands.border('2px', 'dashed', tokens.colorBrandStroke1),
+    backgroundColor: tokens.colorNeutralBackground2,
     cursor: 'pointer',
     transition: `all ${tokens.durationNormal} ${tokens.curveEasyEase}`,
     ':hover': {
-      ...shorthands.borderColor('rgba(129, 140, 248, 0.7)'),
-      backgroundColor: 'rgba(30, 41, 59, 0.65)',
+      ...shorthands.borderColor(tokens.colorBrandStroke2),
+      backgroundColor: tokens.colorNeutralBackground2Hover,
     },
   },
   dropzoneActive: {
-    ...shorthands.borderColor('#6366f1'),
-    backgroundColor: 'rgba(99, 102, 241, 0.12)',
-    boxShadow: '0 0 20px rgba(99, 102, 241, 0.2)',
+    ...shorthands.borderColor(tokens.colorBrandStroke2),
+    backgroundColor: tokens.colorBrandBackground2,
   },
   iconBox: {
     width: '48px',
     height: '48px',
     borderRadius: tokens.borderRadiusCircular,
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    backgroundColor: tokens.colorBrandBackground2,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#818cf8',
+    color: tokens.colorBrandForeground1,
     marginBottom: tokens.spacingVerticalS,
   },
   selectedCard: {
@@ -61,9 +60,9 @@ const useStyles = makeStyles({
     padding: tokens.spacingVerticalM,
     paddingLeft: tokens.spacingHorizontalM,
     paddingRight: tokens.spacingHorizontalM,
-    backgroundColor: 'rgba(30, 41, 59, 0.7)',
+    backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.2)'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
     gap: tokens.spacingHorizontalM,
   },
   fileInfo: {
@@ -179,7 +178,7 @@ export function ResumeDropzone({
       ) : (
         <div className={styles.selectedCard}>
           <div className={styles.fileInfo}>
-            <DocumentPdf24Regular style={{ color: '#ef4444', fontSize: '24px' }} />
+            <DocumentPdf24Regular style={{ color: tokens.colorPaletteRedForeground1, fontSize: '24px' }} />
             <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               <span className={styles.fileName}>{selectedFile.name}</span>
               <Caption1 style={{ color: tokens.colorNeutralForeground3 }}>
@@ -207,7 +206,7 @@ export function ResumeDropzone({
       {loading && <ProgressBar style={{ marginTop: tokens.spacingVerticalXS }} />}
 
       {error && (
-        <Caption1 style={{ color: '#ef4444', fontWeight: 600 }}>
+        <Caption1 style={{ color: tokens.colorPaletteRedForeground1, fontWeight: 600 }}>
           {error}
         </Caption1>
       )}

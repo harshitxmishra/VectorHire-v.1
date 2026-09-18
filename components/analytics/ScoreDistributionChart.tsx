@@ -25,7 +25,7 @@ const useStyles = makeStyles({
   track: {
     flex: 1,
     height: '20px',
-    backgroundColor: 'rgba(30, 41, 59, 0.6)',
+    backgroundColor: tokens.colorNeutralBackground3,
     borderRadius: tokens.borderRadiusSmall,
     overflow: 'hidden',
     display: 'flex',

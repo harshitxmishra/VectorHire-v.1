@@ -86,10 +86,9 @@ const useStyles = makeStyles({
     gap: tokens.spacingHorizontalM,
     flexWrap: 'wrap',
     padding: tokens.spacingVerticalM,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-    backdropFilter: 'blur(16px)',
-    borderRadius: tokens.borderRadiusLarge,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.14)'),
+    backgroundColor: tokens.colorNeutralBackground1,
+    borderRadius: tokens.borderRadiusMedium,
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
   },
   filterInputs: {
     display: 'flex',
@@ -108,9 +107,9 @@ const useStyles = makeStyles({
     paddingBottom: tokens.spacingVerticalS,
     paddingLeft: tokens.spacingHorizontalL,
     paddingRight: tokens.spacingHorizontalL,
-    backgroundColor: 'rgba(79, 70, 229, 0.15)',
+    backgroundColor: tokens.colorBrandBackground2,
     borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'solid', 'rgba(99, 102, 241, 0.35)'),
+    ...shorthands.border('1px', 'solid', tokens.colorBrandStroke1),
     animationName: {
       from: { opacity: 0, transform: 'translateY(-4px)' },
       to: { opacity: 1, transform: 'translateY(0)' },
@@ -133,13 +132,13 @@ const useStyles = makeStyles({
     paddingBottom: tokens.spacingVerticalM,
     paddingLeft: tokens.spacingHorizontalL,
     paddingRight: tokens.spacingHorizontalL,
-    backgroundColor: 'rgba(30, 41, 59, 0.65)',
+    backgroundColor: tokens.colorNeutralBackground1,
     borderRadius: tokens.borderRadiusMedium,
-    ...shorthands.border('1px', 'solid', 'rgba(148, 163, 184, 0.1)'),
+    ...shorthands.border('1px', 'solid', tokens.colorNeutralStroke2),
     transition: `all ${tokens.durationFast}`,
     ':hover': {
-      backgroundColor: 'rgba(39, 54, 78, 0.85)',
-      ...shorthands.borderColor('rgba(129, 140, 248, 0.35)'),
+      backgroundColor: tokens.colorNeutralBackground1Hover,
+      ...shorthands.borderColor(tokens.colorNeutralStroke1Hover),
     },
   },
   candidateContent: {
@@ -155,7 +154,7 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase300,
     textDecoration: 'none',
     ':hover': {
-      color: '#818cf8',
+      color: tokens.colorBrandForeground1,
       textDecoration: 'underline',
     },
   },
@@ -207,9 +206,9 @@ const useStyles = makeStyles({
     padding: tokens.spacingVerticalXXL,
     textAlign: 'center',
     gap: tokens.spacingVerticalM,
-    backgroundColor: 'rgba(30, 41, 59, 0.4)',
+    backgroundColor: tokens.colorNeutralBackground2,
     borderRadius: tokens.borderRadiusLarge,
-    ...shorthands.border('1px', 'dashed', 'rgba(148, 163, 184, 0.2)'),
+    ...shorthands.border('1px', 'dashed', tokens.colorNeutralStroke2),
   },
 });
 
@@ -588,7 +587,7 @@ function CandidatesContent() {
         {selectedIds.size > 0 && (
           <div className={styles.bulkToolbar}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <CheckmarkRegular style={{ color: '#818cf8' }} />
+              <CheckmarkRegular style={{ color: tokens.colorBrandForeground1 }} />
               <Body2 style={{ fontWeight: 600 }}>
                 {selectedIds.size} visible candidate{selectedIds.size > 1 ? 's' : ''} selected
               </Body2>
@@ -645,7 +644,7 @@ function CandidatesContent() {
               </div>
             ) : error ? (
               <div className={styles.emptyState}>
-                <Title2 style={{ color: '#f87171' }}>Error Loading Candidates</Title2>
+                <Title2 style={{ color: tokens.colorPaletteRedForeground1 }}>Error Loading Candidates</Title2>
                 <Body2>{error}</Body2>
                 <Button appearance="primary" onClick={triggerRefresh}>
                   Retry Query
@@ -684,7 +683,7 @@ function CandidatesContent() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '8px 16px',
-                    borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+                    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
                   }}
                 >
                   <Checkbox
@@ -727,10 +726,10 @@ function CandidatesContent() {
                             style={{
                               color:
                                 c.ai_score >= 80
-                                  ? '#34d399'
+                                  ? tokens.colorPaletteGreenForeground1
                                   : c.ai_score >= 60
-                                  ? '#fbbf24'
-                                  : '#f87171',
+                                  ? tokens.colorPaletteYellowForeground1
+                                  : tokens.colorPaletteRedForeground1,
                             }}
                           >
                             {c.ai_score}
