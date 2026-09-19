@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import Link from 'next/link';
 import {
   makeStyles,
   tokens,
   shorthands,
   Title1,
-  Title3,
-  Body1,
   Body2,
   Caption1,
   Input,
@@ -17,8 +16,8 @@ import {
   Tab,
   MessageBar,
   MessageBarBody,
-  Badge,
   Divider,
+  Spinner,
 } from '@fluentui/react-components';
 import {
   LockClosed24Regular,
@@ -27,9 +26,12 @@ import {
   Sparkle24Regular,
   ArrowRight20Filled,
   Bot24Regular,
+  Eye20Regular,
+  EyeOff20Regular,
+  Open20Regular,
 } from '@fluentui/react-icons';
 import { useAuth } from '@/lib/context/auth-context';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 const useStyles = makeStyles({
   root: {
@@ -104,50 +106,110 @@ const useStyles = makeStyles({
   demoButton: {
     height: '42px',
   },
+  previewLinkButton: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+    color: tokens.colorBrandForeground1,
+    textDecoration: 'none',
+    fontSize: tokens.fontSizeBase200,
+    fontWeight: 600,
+    paddingTop: tokens.spacingVerticalXS,
+    ':hover': {
+      textDecoration: 'underline',
+    },
+  },
   footerText: {
     textAlign: 'center',
-    color: tokens.colorNeutralForeground3,
+    color: tokens.colorNeutralForeground4,
+    fontSize: '12px',
   },
 });
 
-export default function LoginPage() {
+function getSafeRedirect(redirectParam: string | null): string {
+  if (!redirectParam) return '/dashboard';
+  if (redirectParam.startsWith('/') && !redirectParam.startsWith('//')) {
+    return redirectParam;
+  }
+  return '/dashboard';
+}
+
+function LoginFormContent() {
   const styles = useStyles();
-  const { signInWithPassword, signUpWithPassword, signInWithDemo } = useAuth();
+  const { user, loading: authLoading, signInWithPassword, signUpWithPassword, signInWithDemo } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTarget = getSafeRedirect(searchParams.get('redirect'));
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace(redirectTarget);
+    }
+  }, [user, authLoading, router, redirectTarget]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setLoading(true);
+    setInfoMessage(null);
 
-    if (!email || !password) {
-      setError('Please enter both email and password.');
-      setLoading(false);
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !password) {
+      setError('Please provide both email and password.');
       return;
     }
 
+    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    if (mode === 'signup') {
+      if (!name.trim()) {
+        setError('Please provide your full name.');
+        return;
+      }
+      if (password.length < 6) {
+        setError('Password must be at least 6 characters long.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        setError('Passwords do not match. Please re-enter.');
+        return;
+      }
+    }
+
+    setLoading(true);
+
     try {
       if (mode === 'signin') {
-        const res = await signInWithPassword(email, password);
+        const res = await signInWithPassword(cleanEmail, password);
         if (res.error) {
           setError(res.error);
+        } else {
+          router.replace(redirectTarget);
         }
       } else {
-        if (!name.trim()) {
-          setError('Please provide your name.');
-          setLoading(false);
-          return;
-        }
-        const res = await signUpWithPassword(email, password, name);
+        const res = await signUpWithPassword(cleanEmail, password, name.trim());
         if (res.error) {
           setError(res.error);
+        } else if (res.requiresEmailConfirmation) {
+          setInfoMessage('Account created! Please check your email inbox to confirm your account before signing in.');
+          setMode('signin');
+          setPassword('');
+          setConfirmPassword('');
+        } else {
+          router.replace(redirectTarget);
         }
       }
     } catch (err) {
@@ -157,108 +219,172 @@ export default function LoginPage() {
     }
   };
 
-  const handleDemoAccess = () => {
-    signInWithDemo('Head of Talent', 'Alex Mercer');
+  const handleDemoAccess = async () => {
+    setError(null);
+    setInfoMessage(null);
+    setLoading(true);
+
+    try {
+      const res = await signInWithDemo();
+      if (res.error) {
+        setError(res.error);
+      } else {
+        router.replace(redirectTarget);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Demo sign in failed.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className={styles.root}>
-      <div className={styles.card}>
-        <div className={styles.brandHeader}>
-          <div className={styles.brandPill}>
-            <Sparkle24Regular style={{ fontSize: '14px' }} />
-            <span>AI Talent Intelligence</span>
-          </div>
-          <Title1 className={styles.brandTitle}>VectorHire</Title1>
-          <Body2 className={styles.brandSubtitle}>
-            Autonomous resume matching, candidate scoring, and interview scheduling
-          </Body2>
+    <div className={styles.card}>
+      <div className={styles.brandHeader}>
+        <div className={styles.brandPill}>
+          <Sparkle24Regular style={{ fontSize: '14px' }} />
+          <span>AI Talent Intelligence</span>
         </div>
+        <Title1 className={styles.brandTitle}>VectorHire</Title1>
+        <Body2 className={styles.brandSubtitle}>
+          Autonomous resume matching, candidate scoring, and interview operations
+        </Body2>
+      </div>
 
-        <TabList
-          selectedValue={mode}
-          onTabSelect={(_, data) => {
-            setMode(data.value as 'signin' | 'signup');
-            setError(null);
-          }}
-          style={{ justifyContent: 'center' }}
-        >
-          <Tab value="signin">Sign In</Tab>
-          <Tab value="signup">Create Account</Tab>
-        </TabList>
+      <TabList
+        selectedValue={mode}
+        onTabSelect={(_, data) => {
+          setMode(data.value as 'signin' | 'signup');
+          setError(null);
+          setInfoMessage(null);
+        }}
+        style={{ justifyContent: 'center' }}
+      >
+        <Tab value="signin">Sign In</Tab>
+        <Tab value="signup">Create Account</Tab>
+      </TabList>
 
-        {error ? (
-          <MessageBar intent="error">
-            <MessageBarBody>{error}</MessageBarBody>
-          </MessageBar>
-        ) : null}
+      {error ? (
+        <MessageBar intent="error">
+          <MessageBarBody>{error}</MessageBarBody>
+        </MessageBar>
+      ) : null}
 
-        <form onSubmit={handleSubmit} className={styles.form}>
-          {mode === 'signup' && (
-            <Field label="Full Name">
-              <Input
-                contentBefore={<Person24Regular />}
-                placeholder="e.g. Sarah Connor"
-                value={name}
-                onChange={(_, d) => setName(d.value)}
-                required
-              />
-            </Field>
-          )}
+      {infoMessage ? (
+        <MessageBar intent="success">
+          <MessageBarBody>{infoMessage}</MessageBarBody>
+        </MessageBar>
+      ) : null}
 
-          <Field label="Work Email">
+      <form onSubmit={handleSubmit} className={styles.form}>
+        {mode === 'signup' && (
+          <Field label="Full Name" required>
             <Input
-              type="email"
-              contentBefore={<Mail24Regular />}
-              placeholder="recruiter@company.com"
-              value={email}
-              onChange={(_, d) => setEmail(d.value)}
+              contentBefore={<Person24Regular />}
+              placeholder="e.g. Alex Mercer"
+              value={name}
+              onChange={(_, d) => setName(d.value)}
               required
+              disabled={loading}
             />
           </Field>
+        )}
 
-          <Field label="Password">
+        <Field label="Work Email" required>
+          <Input
+            type="email"
+            contentBefore={<Mail24Regular />}
+            placeholder="recruiter@company.com"
+            value={email}
+            onChange={(_, d) => setEmail(d.value)}
+            required
+            disabled={loading}
+          />
+        </Field>
+
+        <Field label="Password" required>
+          <Input
+            type={showPassword ? 'text' : 'password'}
+            contentBefore={<LockClosed24Regular />}
+            contentAfter={
+              <Button
+                appearance="transparent"
+                size="small"
+                icon={showPassword ? <EyeOff20Regular /> : <Eye20Regular />}
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              />
+            }
+            placeholder="••••••••••••"
+            value={password}
+            onChange={(_, d) => setPassword(d.value)}
+            required
+            disabled={loading}
+          />
+        </Field>
+
+        {mode === 'signup' && (
+          <Field label="Confirm Password" required>
             <Input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               contentBefore={<LockClosed24Regular />}
               placeholder="••••••••••••"
-              value={password}
-              onChange={(_, d) => setPassword(d.value)}
+              value={confirmPassword}
+              onChange={(_, d) => setConfirmPassword(d.value)}
               required
+              disabled={loading}
             />
           </Field>
-
-          <Button
-            type="submit"
-            appearance="primary"
-            disabled={loading}
-            className={styles.submitButton}
-            icon={<ArrowRight20Filled />}
-            iconPosition="after"
-          >
-            {loading
-              ? 'Authenticating...'
-              : mode === 'signin'
-              ? 'Sign In to Workspace'
-              : 'Create Account'}
-          </Button>
-        </form>
-
-        <Divider>or</Divider>
+        )}
 
         <Button
-          appearance="secondary"
-          className={styles.demoButton}
-          icon={<Bot24Regular />}
-          onClick={handleDemoAccess}
+          type="submit"
+          appearance="primary"
+          disabled={loading}
+          className={styles.submitButton}
+          icon={loading ? <Spinner size="tiny" /> : <ArrowRight20Filled />}
+          iconPosition="after"
         >
-          Explore as Demo Recruiter (1-Click)
+          {loading
+            ? 'Authenticating...'
+            : mode === 'signin'
+            ? 'Sign In to Workspace'
+            : 'Create Account'}
         </Button>
+      </form>
 
-        <Caption1 className={styles.footerText}>
-          Enterprise candidate pipelines protected with vector embeddings and end-to-end security.
-        </Caption1>
-      </div>
+      <Divider>or</Divider>
+
+      <Button
+        appearance="secondary"
+        className={styles.demoButton}
+        icon={<Bot24Regular />}
+        disabled={loading}
+        onClick={handleDemoAccess}
+      >
+        Continue with Demo Account (1-Click)
+      </Button>
+
+      <Link href="/preview" className={styles.previewLinkButton}>
+        <span>Explore VectorHire without signing in</span>
+        <Open20Regular style={{ fontSize: '13px' }} />
+      </Link>
+
+      <Caption1 className={styles.footerText}>
+        Enterprise candidate pipelines protected with vector embeddings and end-to-end security.
+      </Caption1>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  const styles = useStyles();
+
+  return (
+    <div className={styles.root}>
+      <Suspense fallback={<Spinner size="medium" label="Loading VectorHire authentication..." />}>
+        <LoginFormContent />
+      </Suspense>
     </div>
   );
 }
