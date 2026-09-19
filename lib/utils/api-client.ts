@@ -1,3 +1,5 @@
+import { getSupabaseAuthClient } from '@/lib/supabase/auth-client';
+
 /**
  * Utility for safe API response handling in frontend components.
  * Prevents "Unexpected token '<', "<!DOCTYPE "... is not valid JSON" errors
@@ -9,6 +11,51 @@ export interface SafeApiResponse<T> {
   status: number;
   statusText: string;
   data: T;
+}
+
+/**
+ * Retrieves authorization headers carrying the current Supabase session token.
+ * Does NOT store tokens manually in localStorage; uses the native Supabase session.
+ */
+export async function getAuthHeaders(tokenOverride?: string | null): Promise<Record<string, string>> {
+  if (tokenOverride) {
+    return { Authorization: `Bearer ${tokenOverride}` };
+  }
+
+  if (typeof window !== 'undefined') {
+    const supabase = getSupabaseAuthClient();
+    if (supabase) {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.access_token) {
+          return { Authorization: `Bearer ${data.session.access_token}` };
+        }
+      } catch {
+        // Fallback without auth header
+      }
+    }
+  }
+
+  return {};
+}
+
+/**
+ * Wrapper around global fetch that automatically attaches the Supabase JWT Bearer token
+ * to authenticated backend requests.
+ */
+export async function fetchWithAuth(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const authHeaders = await getAuthHeaders();
+  const headers = new Headers(init?.headers);
+
+  // Set Authorization header if not explicitly provided and token exists
+  if (!headers.has('Authorization') && authHeaders.Authorization) {
+    headers.set('Authorization', authHeaders.Authorization);
+  }
+
+  return fetch(input, {
+    ...init,
+    headers,
+  });
 }
 
 /**

@@ -300,7 +300,8 @@ export default function AIEvaluationPage() {
     setEvaluationError(null);
 
     try {
-      const response = await fetch('/api/v1/ai/evaluate', {
+      // Direct Next.js AI evaluation endpoint
+      const response = await fetch('/api/ai/evaluate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -315,44 +316,18 @@ export default function AIEvaluationPage() {
         }),
       });
 
-      const result = await response.json();
-
       if (!response.ok) {
-        throw new Error(result.error ?? 'AI evaluation failed.');
+        let errText = 'AI evaluation failed.';
+        try {
+          const errJson = await response.json();
+          errText = errJson.error || errJson.message || errText;
+        } catch {
+          errText = `AI evaluation failed (HTTP ${response.status}).`;
+        }
+        throw new Error(errText);
       }
 
-      let evaluationData = result;
-
-      // Handle asynchronous queue response
-      if (result.status === 'completed' && result.result) {
-        evaluationData = result.result;
-      } else if (result.status === 'queued' && result.jobId) {
-        let attempts = 0;
-        const maxAttempts = 60;
-        let completed = false;
-
-        while (attempts < maxAttempts && !completed) {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          attempts++;
-
-          const pollRes = await fetch(`/api/v1/ai/jobs/${result.jobId}`);
-          if (!pollRes.ok) {
-            continue;
-          }
-          const pollData = await pollRes.json();
-
-          if (pollData.state === 'completed') {
-            evaluationData = pollData.result;
-            completed = true;
-          } else if (pollData.state === 'failed') {
-            throw new Error(pollData.error || 'AI evaluation failed.');
-          }
-        }
-
-        if (!completed) {
-          throw new Error('AI evaluation timed out. Please try again.');
-        }
-      }
+      const evaluationData: AIEvaluationResult = await response.json();
 
       setEvaluations((prev) => ({ ...prev, [candidate.id]: evaluationData }));
       setEvaluationStatus((prev) => ({ ...prev, [candidate.id]: 'evaluated' }));

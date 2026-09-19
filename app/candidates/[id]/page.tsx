@@ -427,6 +427,32 @@ function CandidateDetailContent() {
         }
       }
     } catch (err) {
+      // Fallback to direct AI evaluate endpoint
+      try {
+        const directRes = await fetch('/api/ai/evaluate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            candidate_id: candidate.id,
+            full_name: candidate.full_name,
+            college: candidate.college,
+            cgpa: candidate.cgpa,
+            github: candidate.github ?? '',
+            status: candidate.status,
+            ai_score: candidate.ai_score,
+            force,
+          }),
+        });
+        if (directRes.ok) {
+          setAiJobState('completed');
+          notify('AI Evaluation completed', 'success');
+          await Promise.all([loadCandidate(), loadTimeline()]);
+          return;
+        }
+      } catch {
+        // Continue to error state
+      }
+
       setAiJobState('failed');
       notify(err instanceof Error ? err.message : 'AI Evaluation failed', 'error');
     }

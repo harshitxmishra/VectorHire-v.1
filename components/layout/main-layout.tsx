@@ -5,6 +5,7 @@ import { Sidebar } from './sidebar';
 import { Navbar } from './navbar';
 import { ReactNode } from 'react';
 import { APP_TOASTER_ID } from '@/lib/hooks/use-app-toast';
+import { AuthGuard } from '@/components/auth/auth-guard';
 
 const useStyles = makeStyles({
   root: {
@@ -52,15 +53,17 @@ export function MainLayout({ children }: MainLayoutProps) {
   const styles = useStyles();
 
   return (
-    <div className={styles.root}>
-      <Toaster toasterId={APP_TOASTER_ID} />
-      <Sidebar />
-      <div className={styles.main}>
-        <Navbar />
-        <main className={styles.content}>
-          <div className={styles.contentInner}>{children}</div>
-        </main>
+    <AuthGuard>
+      <div className={styles.root}>
+        <Toaster toasterId={APP_TOASTER_ID} />
+        <Sidebar />
+        <div className={styles.main}>
+          <Navbar />
+          <main className={styles.content}>
+            <div className={styles.contentInner}>{children}</div>
+          </main>
+        </div>
       </div>
-    </div>
+    </AuthGuard>
   );
 }
