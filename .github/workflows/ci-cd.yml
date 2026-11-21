@@ -108,7 +108,7 @@ jobs:
 
       - name: Build Backend Docker Image
         run: |
-          docker build -t vectorhire-backend:latest ./backend
+          docker build -t vectorhire-backend:latest -f backend/Dockerfile .
 
   deploy:
     name: Deploy to Production
