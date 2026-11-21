@@ -15,7 +15,7 @@ import {
 } from '@fluentui/react-components';
 import { useState } from 'react';
 import { Candidate } from '@/lib/types';
-import { safeParseApiResponse } from '@/lib/utils/api-client';
+import { safeParseApiResponse, fetchWithAuth } from '@/lib/utils/api-client';
 
 const useStyles = makeStyles({
   body: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL, paddingTop: tokens.spacingVerticalL },
@@ -57,7 +57,7 @@ export function ScheduleInterviewDrawer({
     scheduled.setHours(hours, minutes, 0, 0);
 
     try {
-      const res = await fetch('/api/interviews', {
+      const res = await fetchWithAuth('/api/interviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

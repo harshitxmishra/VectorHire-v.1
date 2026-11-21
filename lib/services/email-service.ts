@@ -28,6 +28,9 @@ export interface EmailExtra {
   recruiterName?: string;
   interviewDate?: string;
   meetLink?: string;
+  roleTitle?: string;
+  salary?: string;
+  offerUrl?: string;
 }
 
 function buildTemplate(
@@ -63,8 +66,13 @@ function buildTemplate(
       };
     case 'offer':
       return {
-        subject: 'Offer of Employment',
-        html: `<p>Hi ${candidateName},</p><p>Congratulations! We're excited to extend you an offer. Our team will follow up with details shortly.</p><p>Best,<br/>VectorHire Recruiting Team</p>`,
+        subject: extra?.roleTitle ? `Offer of Employment: ${extra.roleTitle}` : 'Offer of Employment',
+        html: `<div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 560px; margin: 0 auto;">
+          <h2 style="color:#1f2937;">Hi ${candidateName},</h2>
+          <p style="color:#374151;">Congratulations! We are thrilled to extend an offer of employment${extra?.roleTitle ? ` for the position of <strong>${extra.roleTitle}</strong>` : ''}${extra?.salary ? ` at <strong>${extra.salary}</strong>` : ''}.</p>
+          ${extra?.offerUrl ? `<p style="margin: 20px 0;"><a href="${extra.offerUrl}" style="display:inline-block; background:#10b981; color:#fff; font-weight:600; padding:12px 24px; border-radius:6px; text-decoration:none;">Review & Sign Offer Letter</a></p>` : ''}
+          <p style="color:#374151;">Please review the formal offer details and respond before the expiration date.<br/><br/>Warm regards,<br/>VectorHire Recruiting Team</p>
+        </div>`,
       };
   }
 }

@@ -1,11 +1,21 @@
 import { PIPELINE_STAGES } from '@/lib/types';
+import {
+  HIRING_STAGES,
+  HiringStage,
+  isValidStageTransition,
+  normalizeHiringStage,
+} from '@/lib/workflow/hiring-state-machine';
 
 export const ALL_ALLOWED_CANDIDATE_STATUSES = [
   ...PIPELINE_STAGES,
+  ...HIRING_STAGES,
   'Pending',
   'New',
   'Reviewed',
   'Interview',
+  'Screening',
+  'Technical Eval',
+  'Offer Sent',
 ] as const;
 
 export type AllowedCandidateStatus = (typeof ALL_ALLOWED_CANDIDATE_STATUSES)[number];
@@ -34,6 +44,24 @@ export function validateCandidateStatus(input: unknown): ValidationResult<Allowe
   }
 
   return { success: true, data: normalized };
+}
+
+export function validateCandidateTransition(
+  currentStatus: string,
+  newStatus: string
+): ValidationResult<{ from: HiringStage; to: HiringStage }> {
+  const check = isValidStageTransition(currentStatus, newStatus);
+  if (!check.valid) {
+    return {
+      success: false,
+      error: check.error ?? 'Invalid stage transition',
+      field: 'status',
+    };
+  }
+  return {
+    success: true,
+    data: { from: check.normalizedFrom, to: check.normalizedTo },
+  };
 }
 
 export interface JobDescriptionInput {

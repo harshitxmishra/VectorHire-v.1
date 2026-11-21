@@ -31,22 +31,65 @@ export interface Candidate {
   ai_evaluated_at: string | null;
 }
 
+export interface GitHubSubScores {
+  codeDepth: number; // 0-20
+  commitConsistency: number; // 0-20
+  readmeQuality: number; // 0-20
+  repoOriginality: number; // 0-20
+  stackAlignment: number; // 0-20
+}
+
+export interface DeepRepoAnalysis {
+  name: string;
+  isFork: boolean;
+  language: string | null;
+  stars: number;
+  hasReadme: boolean;
+  readmeScore: number;
+  hasTests: boolean;
+  hasDockerfile: boolean;
+  hasCi: boolean;
+  recentCommitCount: number;
+  commitHygieneRatio: number;
+}
+
 export interface GitHubIntelligence {
   score: number;
+  subScores?: GitHubSubScores;
   summary: string;
   languages: string[];
   portfolioVerdict: string;
   highlights: string[];
   strongestRepo: string | null;
+  topRepos?: DeepRepoAnalysis[];
+}
+
+export interface JDSkillMatch {
+  skill: string;
+  status: 'verified_via_github' | 'resume_only' | 'missing';
+  evidence: string;
+}
+
+export interface StandoutEvidence {
+  claim: string;
+  citation: string;
+  repo: string;
+  commitOrReadme: string;
 }
 
 export interface AIEvaluationResult {
   score: number;
+  overall_score?: number;
   summary: string;
   strengths: string[];
   weaknesses: string[];
   recommendation: string;
   interviewQuestions: string[];
+  recommended_interview_questions?: string[];
+  jd_skill_matrix?: JDSkillMatch[];
+  red_flags?: string[];
+  standout_evidence?: StandoutEvidence[];
+  cached?: boolean;
 }
 
 export interface DatasetUpload {
@@ -135,7 +178,29 @@ export interface Interview {
   status: InterviewStatus;
   calendar_event_id: string | null;
   meet_link: string | null;
+  ics_download_url?: string | null;
   candidates?: { full_name: string; email: string } | null;
+}
+
+export type OfferStatus = 'sent' | 'accepted' | 'declined' | 'expired';
+
+export interface OfferLetter {
+  id: number;
+  created_at: string;
+  candidate_id: number;
+  token: string;
+  role_title: string;
+  annual_salary: number;
+  currency: string;
+  start_date: string;
+  expiration_date: string;
+  status: OfferStatus;
+  decline_reason?: string | null;
+  responded_at?: string | null;
+  s3_pdf_key?: string | null;
+  s3_pdf_url?: string | null;
+  shareable_url?: string;
+  candidates?: { full_name: string; email: string; college?: string } | null;
 }
 
 export interface EmailLog {
