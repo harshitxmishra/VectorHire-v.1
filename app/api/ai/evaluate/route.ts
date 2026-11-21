@@ -138,7 +138,11 @@ ${JSON.stringify(body)}${githubContext}`,
     if (body.candidate_id) {
       await supabase
         .from('candidates')
-        .update({ ai_evaluation: parsed, ai_evaluated_at: new Date().toISOString() })
+        .update({
+          ai_score: parsed.score,
+          ai_evaluation: parsed,
+          ai_evaluated_at: new Date().toISOString(),
+        })
         .eq('id', body.candidate_id);
       await logTimelineEvent(body.candidate_id, 'ai_evaluated', `Score: ${parsed.score}`);
     }
