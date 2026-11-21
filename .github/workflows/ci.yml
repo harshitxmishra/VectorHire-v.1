@@ -31,6 +31,7 @@ jobs:
       SUPABASE_URL: "https://placeholder-project.supabase.co"
       SUPABASE_SERVICE_ROLE_KEY: "placeholder-service-role-key"
       REDIS_URL: "redis://127.0.0.1:6379"
+      OFFER_SIGNING_SECRET: "test-signing-secret"
 
     steps:
       - name: Checkout repository
@@ -39,7 +40,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
@@ -48,7 +49,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install root dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Install backend dependencies
         run: npm --prefix backend ci

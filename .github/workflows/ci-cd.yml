@@ -1,0 +1,124 @@
+name: VectorHire CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - 'feat/**'
+  pull_request:
+    branches:
+      - main
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Typecheck, Test & Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: "https://placeholder-project.supabase.co"
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder-anon-key"
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "placeholder-anon-key"
+      SUPABASE_URL: "https://placeholder-project.supabase.co"
+      SUPABASE_SERVICE_ROLE_KEY: "placeholder-service-role-key"
+      REDIS_URL: "redis://127.0.0.1:6379"
+      OFFER_SIGNING_SECRET: "test-signing-secret"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install root dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Root TypeScript typecheck
+        run: pnpm exec tsc --noEmit
+
+      - name: Backend TypeScript typecheck & build
+        run: pnpm run build:backend
+
+      - name: Run root unit & integration tests (140+ Vitest)
+        run: pnpm test
+
+      - name: Run backend unit tests (280+ Vitest)
+        run: pnpm run test:backend
+
+      - name: Run backend integration tests
+        run: pnpm run test:integration
+
+      - name: Build Next.js production bundle
+        run: pnpm run build
+        env:
+          NODE_ENV: production
+
+  terraform:
+    name: Terraform IaC Validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.0
+
+      - name: Terraform Format Check
+        run: terraform -chdir=infra/terraform fmt -check
+
+      - name: Terraform Init
+        run: terraform -chdir=infra/terraform init -backend=false
+
+      - name: Terraform Validate
+        run: terraform -chdir=infra/terraform validate
+
+  docker:
+    name: Docker Container Build
+    needs: [validate, terraform]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Backend Docker Image
+        run: |
+          docker build -t vectorhire-backend:latest ./backend
+
+  deploy:
+    name: Deploy to Production
+    needs: [validate, terraform, docker]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel Deployment Hook
+        if: env.VERCEL_DEPLOY_HOOK != ''
+        env:
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          curl -s -X POST "$VERCEL_DEPLOY_HOOK"

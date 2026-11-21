@@ -37,3 +37,10 @@ backend/dist/
 
 # Temporary files
 .tmp-design/
+generate_pdf.py
+VectorHire_Architecture_Manual.*
+candidates_dataset_test.*
+candidates_supabase_direct.csv
+public/candidates_dataset_test.*
+public/candidates_supabase_direct.csv
+public/downloads/
