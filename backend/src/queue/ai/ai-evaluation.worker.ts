@@ -54,7 +54,8 @@ export class AiEvaluationWorker implements OnModuleInit, OnApplicationShutdown {
     job: Job<AiEvaluationJobData, AiEvaluationJobResult>
   ): Promise<AiEvaluationJobResult> {
     const startTime = Date.now();
-    const { candidate_id, correlationId } = job.data;
+    const candidateId = job.data.candidate_id ?? (job.data as any).candidateId;
+    const { correlationId } = job.data;
     const attempt = (job.attemptsMade ?? 0) + 1;
     const maxAttempts = job.opts?.attempts ?? 3;
 
@@ -83,7 +84,7 @@ export class AiEvaluationWorker implements OnModuleInit, OnApplicationShutdown {
       });
 
       return {
-        candidateId: candidate_id,
+        candidateId,
         score: evalResult.score,
         summary: evalResult.summary,
         strengths: evalResult.strengths,

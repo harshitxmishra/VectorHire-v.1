@@ -23,7 +23,7 @@ import { ArrowUploadRegular, DeleteRegular, ArrowDownloadRegular } from '@fluent
 import Papa from 'papaparse';
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { DatasetUpload } from '@/lib/types';
-import { safeParseApiResponse } from '@/lib/utils/api-client';
+import { safeParseApiResponse, fetchWithAuth } from '@/lib/utils/api-client';
 
 const useStyles = makeStyles({
   section: {
@@ -98,7 +98,7 @@ export function DatasetManagerDialog({ open, onClose, onImported }: DatasetManag
 
   const loadHistory = useCallback(async () => {
     try {
-      const res = await fetch('/api/v1/datasets');
+      const res = await fetchWithAuth('/api/v1/datasets');
       if (res.ok) {
         const body = await safeParseApiResponse<DatasetUpload[]>(res);
         if (Array.isArray(body)) setHistory(body);
@@ -147,8 +147,15 @@ export function DatasetManagerDialog({ open, onClose, onImported }: DatasetManag
       formData.append('datasetName', datasetName || file.name);
       formData.append('uploadedBy', uploadedBy);
 
-      // Route through NestJS BullMQ async dataset import
-      const res = await fetch('/api/v1/datasets/import', { method: 'POST', body: formData });
+      // 1. Try Next.js native import endpoint (direct Supabase connection)
+      let res = await fetchWithAuth('/api/candidates/import', { method: 'POST', body: formData });
+      if (!res.ok) {
+        res = await fetchWithAuth('/api/datasets/import', { method: 'POST', body: formData });
+      }
+      if (!res.ok) {
+        res = await fetchWithAuth('/api/v1/datasets/import', { method: 'POST', body: formData });
+      }
+
       const body = await safeParseApiResponse<{
         success?: boolean;
         inserted?: number;
@@ -156,6 +163,10 @@ export function DatasetManagerDialog({ open, onClose, onImported }: DatasetManag
         jobId?: string;
         error?: string;
       }>(res);
+
+      if (!res.ok && body.error) {
+        throw new Error(body.error);
+      }
 
       let insertedCount = body.inserted ?? 0;
       let finalMode = mode;
@@ -169,7 +180,7 @@ export function DatasetManagerDialog({ open, onClose, onImported }: DatasetManag
           await new Promise((resolve) => setTimeout(resolve, 1000));
           attempts++;
 
-          const pollRes = await fetch(`/api/v1/datasets/jobs/${body.jobId}`);
+          const pollRes = await fetchWithAuth(`/api/v1/datasets/jobs/${body.jobId}`);
           if (!pollRes.ok) continue;
           const pollData = await safeParseApiResponse<{
             state?: string;
@@ -215,7 +226,7 @@ export function DatasetManagerDialog({ open, onClose, onImported }: DatasetManag
       const formData = new FormData();
       formData.append('file', selected);
 
-      const res = await fetch('/api/candidates/import-test-results', { method: 'POST', body: formData });
+      const res = await fetchWithAuth('/api/candidates/import-test-results', { method: 'POST', body: formData });
       const body = await safeParseApiResponse<{ matched?: number }>(res);
 
       setSuccess(`Matched test results for ${body.matched ?? 0} candidates.`);
@@ -233,7 +244,7 @@ export function DatasetManagerDialog({ open, onClose, onImported }: DatasetManag
     setError(null);
 
     try {
-      const res = await fetch('/api/candidates', {
+      const res = await fetchWithAuth('/api/candidates', {
         method: 'DELETE',
         headers: {
           'x-confirm-destructive': 'true',

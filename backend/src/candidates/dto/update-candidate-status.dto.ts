@@ -17,6 +17,17 @@ export const ALLOWED_STATUSES = [
   'New',
   'Reviewed',
   'Interview',
+  'Screening',
+  'Technical Eval',
+  'Offer Sent',
+  'APPLIED',
+  'SCREENING',
+  'TECHNICAL_EVAL',
+  'INTERVIEW_SCHEDULED',
+  'INTERVIEW_COMPLETED',
+  'OFFER_SENT',
+  'HIRED',
+  'REJECTED',
 ] as const;
 
 export type AllowedStatus = (typeof ALLOWED_STATUSES)[number];

@@ -58,7 +58,7 @@ import {
   EmailLog,
   PIPELINE_STAGES,
 } from '@/lib/types';
-import { safeParseApiResponse } from '@/lib/utils/api-client';
+import { safeParseApiResponse, fetchWithAuth } from '@/lib/utils/api-client';
 
 const useStyles = makeStyles({
   container: {
@@ -357,13 +357,15 @@ function CandidateDetailContent() {
   };
 
   // Run AI Evaluation with Bounded Polling
+  // Run AI Evaluation with Bounded Polling & Direct Fallback
   const triggerAiEvaluation = async (force = false) => {
     if (!candidate) return;
     setAiJobState('queued');
-    notify('Enqueued AI Candidate Evaluation', 'info');
+    notify('Starting AI Candidate Evaluation...', 'info');
 
     try {
-      const res = await fetch('/api/v1/ai/evaluate', {
+      // 1. Direct Next.js AI evaluate endpoint
+      const directRes = await fetchWithAuth('/api/ai/evaluate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -378,126 +380,48 @@ function CandidateDetailContent() {
         }),
       });
 
-      const body = await safeParseApiResponse<{
-        status?: string;
-        result?: unknown;
-        jobId?: string;
-        error?: string;
-      }>(res);
-
-      if (body.status === 'completed' && body.result) {
+      if (directRes.ok) {
         setAiJobState('completed');
-        notify('AI Evaluation completed', 'success');
+        notify('AI Evaluation completed successfully', 'success');
         await Promise.all([loadCandidate(), loadTimeline()]);
         return;
       }
 
-      if (body.jobId) {
-        setAiJobState('processing');
-        let attempts = 0;
-        const maxAttempts = 60;
-        let finished = false;
+      const body = await safeParseApiResponse<{
+        error?: string;
+      }>(directRes);
 
-        while (attempts < maxAttempts && !finished) {
-          await new Promise((r) => setTimeout(r, 1000));
-          attempts++;
-
-          const pollRes = await fetch(`/api/v1/ai/jobs/${body.jobId}`);
-          if (pollRes.ok) {
-            const pollData = await safeParseApiResponse<{
-              state?: string;
-              error?: string;
-            }>(pollRes);
-            if (pollData.state === 'completed') {
-              finished = true;
-              setAiJobState('completed');
-              notify('AI Evaluation completed successfully', 'success');
-              await Promise.all([loadCandidate(), loadTimeline()]);
-            } else if (pollData.state === 'failed') {
-              finished = true;
-              setAiJobState('failed');
-              notify(pollData.error || 'AI Evaluation failed', 'error');
-            }
-          }
-        }
-
-        if (!finished) {
-          setAiJobState('idle');
-          notify('AI Evaluation is processing in background.', 'info');
-        }
-      }
+      throw new Error(body.error || 'AI Evaluation failed');
     } catch (err) {
-      // Fallback to direct AI evaluate endpoint
-      try {
-        const directRes = await fetch('/api/ai/evaluate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            candidate_id: candidate.id,
-            full_name: candidate.full_name,
-            college: candidate.college,
-            cgpa: candidate.cgpa,
-            github: candidate.github ?? '',
-            status: candidate.status,
-            ai_score: candidate.ai_score,
-            force,
-          }),
-        });
-        if (directRes.ok) {
-          setAiJobState('completed');
-          notify('AI Evaluation completed', 'success');
-          await Promise.all([loadCandidate(), loadTimeline()]);
-          return;
-        }
-      } catch {
-        // Continue to error state
-      }
-
       setAiJobState('failed');
       notify(err instanceof Error ? err.message : 'AI Evaluation failed', 'error');
     }
   };
 
-  // Run Resume Parse with Bounded Polling
+  // Run Resume Parse with Direct Route & Bounded Polling
   const triggerResumeParse = async () => {
     if (!candidate?.resume_url) {
       notify('Candidate does not have a resume URL configured.', 'error');
       return;
     }
     setResumeJobState('queued');
-    notify('Enqueued Resume Parsing', 'info');
+    notify('Starting Resume Parsing...', 'info');
 
     try {
-      const res = await fetch(`/api/v1/candidates/${candidate.id}/parse-resume`, {
+      const res = await fetchWithAuth(`/api/candidates/${candidate.id}/parse-resume`, {
         method: 'POST',
       });
-      const body = await safeParseApiResponse<{ jobId?: string; error?: string }>(res);
+      const body = await safeParseApiResponse<{ status?: string; error?: string }>(res);
 
-      if (body.jobId) {
-        setResumeJobState('processing');
-        let attempts = 0;
-        const maxAttempts = 60;
-        let finished = false;
+      if (res.ok && body.status === 'success') {
+        setResumeJobState('completed');
+        notify('Resume parsed successfully', 'success');
+        await Promise.all([loadCandidate(), loadTimeline()]);
+        return;
+      }
 
-        while (attempts < maxAttempts && !finished) {
-          await new Promise((r) => setTimeout(r, 1000));
-          attempts++;
-
-          const pollRes = await fetch(`/api/v1/resume/jobs/${body.jobId}`);
-          if (pollRes.ok) {
-            const pollData = await safeParseApiResponse<{ state?: string; error?: string }>(pollRes);
-            if (pollData.state === 'completed') {
-              finished = true;
-              setResumeJobState('completed');
-              notify('Resume parsed successfully', 'success');
-              await Promise.all([loadCandidate(), loadTimeline()]);
-            } else if (pollData.state === 'failed') {
-              finished = true;
-              setResumeJobState('failed');
-              notify(pollData.error || 'Resume parsing failed', 'error');
-            }
-          }
-        }
+      if (!res.ok) {
+        throw new Error(body.error || 'Resume parsing failed.');
       }
     } catch (err) {
       setResumeJobState('failed');
@@ -505,61 +429,31 @@ function CandidateDetailContent() {
     }
   };
 
-  // Run GitHub Analysis with Bounded Polling
+  // Run GitHub Analysis with Direct Route & Bounded Polling
   const triggerGithubAnalysis = async (force = false) => {
     if (!candidate?.github) {
       notify('Candidate does not have a GitHub handle configured.', 'error');
       return;
     }
     setGithubJobState('queued');
-    notify('Enqueued GitHub Technical Analysis', 'info');
+    notify('Starting GitHub Technical Analysis...', 'info');
 
     try {
-      let res = await fetch(`/api/v1/candidates/${candidate.id}/analyze-github`, {
+      const res = await fetchWithAuth('/api/ai/github', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ force }),
+        body: JSON.stringify({ candidate_id: candidate.id, force }),
       });
-      if (!res.ok) {
-        res = await fetch('/api/ai/github', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ candidate_id: candidate.id }),
-        });
-      }
-      const body = await safeParseApiResponse<{ jobId?: string; score?: number; error?: string }>(res);
+      const body = await safeParseApiResponse<{ score?: number; error?: string }>(res);
 
-      if (body.jobId) {
-        setGithubJobState('processing');
-        let attempts = 0;
-        const maxAttempts = 60;
-        let finished = false;
-
-        while (attempts < maxAttempts && !finished) {
-          await new Promise((r) => setTimeout(r, 1000));
-          attempts++;
-
-          const pollRes = await fetch(`/api/v1/github/jobs/${body.jobId}`);
-          if (pollRes.ok) {
-            const pollData = await safeParseApiResponse<{ state?: string; error?: string }>(pollRes);
-            if (pollData.state === 'completed') {
-              finished = true;
-              setGithubJobState('completed');
-              notify('GitHub analysis completed', 'success');
-              await Promise.all([loadCandidate(), loadTimeline()]);
-            } else if (pollData.state === 'failed') {
-              finished = true;
-              setGithubJobState('failed');
-              notify(pollData.error || 'GitHub analysis failed', 'error');
-            }
-          }
-        }
-      } else {
-        // Direct synchronous response from Next.js route
+      if (res.ok) {
         setGithubJobState('completed');
-        notify(`GitHub analysis completed — score ${body.score ?? 0}/100`, 'success');
+        notify('GitHub analysis completed successfully', 'success');
         await Promise.all([loadCandidate(), loadTimeline()]);
+        return;
       }
+
+      throw new Error(body.error || 'GitHub analysis failed');
     } catch (err) {
       setGithubJobState('failed');
       notify(err instanceof Error ? err.message : 'GitHub analysis failed', 'error');

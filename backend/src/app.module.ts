@@ -17,6 +17,7 @@ import { ResumeModule } from './resume/resume.module';
 import { GithubModule } from './github/github.module';
 import { DatasetsModule } from './datasets/datasets.module';
 import { QueueModule } from './queue/queue.module';
+import { StorageModule } from './storage/storage.module';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
@@ -48,6 +49,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
     ResumeModule,
     GithubModule,
     DatasetsModule,
+    StorageModule,
   ],
   providers: [
     {

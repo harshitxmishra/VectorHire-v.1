@@ -22,7 +22,14 @@ import {
   Code16Regular,
   ArrowSyncRegular,
 } from '@fluentui/react-icons';
-import { Candidate, PIPELINE_STAGES, JobMatchResult } from '@/lib/types';
+import { Candidate, JobMatchResult } from '@/lib/types';
+import {
+  HIRING_STAGES,
+  HiringStage,
+  ALLOWED_TRANSITIONS,
+  STAGE_DISPLAY_NAMES,
+  normalizeHiringStage,
+} from '@/lib/workflow/hiring-state-machine';
 
 const useStyles = makeStyles({
   board: {
@@ -140,14 +147,15 @@ interface CandidateKanbanProps {
   onViewAnalysis: (candidate: Candidate) => void;
 }
 
-const STAGES: string[] = [
-  'Applied',
-  'Pending',
-  'Shortlisted',
-  'Interview Scheduled',
-  'Offer Sent',
-  'Hired',
-  'Rejected',
+const STAGES: { id: HiringStage; label: string }[] = [
+  { id: 'APPLIED', label: 'Applied' },
+  { id: 'SCREENING', label: 'Screening' },
+  { id: 'TECHNICAL_EVAL', label: 'Technical Eval' },
+  { id: 'INTERVIEW_SCHEDULED', label: 'Interview Scheduled' },
+  { id: 'INTERVIEW_COMPLETED', label: 'Interview Completed' },
+  { id: 'OFFER_SENT', label: 'Offer Sent' },
+  { id: 'HIRED', label: 'Hired' },
+  { id: 'REJECTED', label: 'Rejected' },
 ];
 
 export function CandidateKanban({
@@ -168,13 +176,13 @@ export function CandidateKanban({
     <div className={styles.board}>
       {STAGES.map((stage) => {
         const stageCandidates = candidates.filter(
-          (c) => (c.status || 'Applied').toLowerCase() === stage.toLowerCase()
+          (c) => normalizeHiringStage(c.status) === stage.id
         );
 
         return (
-          <div key={stage} className={styles.column}>
+          <div key={stage.id} className={styles.column}>
             <div className={styles.columnHeader}>
-              <span className={styles.columnTitle}>{stage}</span>
+              <span className={styles.columnTitle}>{stage.label}</span>
               <span className={styles.columnCount}>{stageCandidates.length}</span>
             </div>
 
@@ -184,6 +192,8 @@ export function CandidateKanban({
               ) : (
                 stageCandidates.map((candidate) => {
                   const match = matches[candidate.id];
+                  const currentNorm = normalizeHiringStage(candidate.status);
+                  const allowedNext = ALLOWED_TRANSITIONS[currentNorm] || [];
 
                   return (
                     <div key={candidate.id} className={styles.card}>
@@ -212,13 +222,13 @@ export function CandidateKanban({
                               >
                                 View AI Analysis
                               </MenuItem>
-                              {PIPELINE_STAGES.filter((s) => s.toLowerCase() !== (candidate.status || '').toLowerCase()).map((nextStage) => (
+                              {allowedNext.map((nextStage) => (
                                 <MenuItem
                                   key={nextStage}
                                   icon={<ArrowSyncRegular />}
-                                  onClick={() => onStatusChange(candidate, nextStage)}
+                                  onClick={() => onStatusChange(candidate, STAGE_DISPLAY_NAMES[nextStage])}
                                 >
-                                  Move to {nextStage}
+                                  Advance to {STAGE_DISPLAY_NAMES[nextStage]}
                                 </MenuItem>
                               ))}
                             </MenuList>
