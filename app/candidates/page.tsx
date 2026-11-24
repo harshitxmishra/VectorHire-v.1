@@ -45,7 +45,7 @@ import { DatasetManagerDialog } from '@/components/candidates/DatasetManagerDial
 import { ShortlistDialog } from '@/components/candidates/ShortlistDialog';
 import { CandidateKanban } from '@/components/candidates/CandidateKanban';
 import { useAppToast } from '@/lib/hooks/use-app-toast';
-import { safeParseApiResponse } from '@/lib/utils/api-client';
+import { safeParseApiResponse, fetchWithAuth } from '@/lib/utils/api-client';
 import {
   Candidate,
   AIEvaluationResult,
@@ -333,7 +333,7 @@ function CandidatesContent() {
         params.set('page', String(urlPage));
         params.set('limit', String(urlLimit));
 
-        const res = await fetch(`/api/candidates?${params.toString()}`);
+        const res = await fetchWithAuth(`/api/candidates?${params.toString()}`);
         const body = await safeParseApiResponse<PaginatedCandidates | Candidate[]>(res);
 
         if (isCancelled) return;
@@ -376,7 +376,7 @@ function CandidatesContent() {
     let isCancelled = false;
     async function fetchJobDescriptions() {
       try {
-        const res = await fetch('/api/job-descriptions');
+        const res = await fetchWithAuth('/api/job-descriptions');
         const body = await safeParseApiResponse<JobDescription[]>(res);
         if (!isCancelled) {
           setJobDescriptions(Array.isArray(body) ? body : []);
@@ -394,7 +394,7 @@ function CandidatesContent() {
   // Single candidate status change
   const handleStatusChange = async (candidate: Candidate, newStatus: string) => {
     try {
-      const res = await fetch(`/api/candidates/${candidate.id}`, {
+      const res = await fetchWithAuth(`/api/candidates/${candidate.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -417,7 +417,7 @@ function CandidatesContent() {
     }
     setBulkUpdating(true);
     try {
-      const res = await fetch('/api/candidates/bulk-status', {
+      const res = await fetchWithAuth('/api/candidates/bulk-status', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

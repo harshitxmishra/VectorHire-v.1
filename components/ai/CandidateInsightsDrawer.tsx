@@ -25,7 +25,7 @@ import {
 } from '@fluentui/react-components';
 import { useEffect, useState } from 'react';
 import { TimelineEvent } from '@/lib/types';
-import { safeParseApiResponse } from '@/lib/utils/api-client';
+import { safeParseApiResponse, fetchWithAuth } from '@/lib/utils/api-client';
 
 const EVENT_LABELS: Record<string, string> = {
   applied: 'Applied',
@@ -267,7 +267,7 @@ export default function CandidateInsightsDrawer({
 
   useEffect(() => {
     if (open && candidateId) {
-      fetch(`/api/candidates/${candidateId}/timeline`)
+      fetchWithAuth(`/api/candidates/${candidateId}/timeline`)
         .then((res) => safeParseApiResponse<TimelineEvent[]>(res))
         .then((body) => setTimeline(Array.isArray(body) ? body : []))
         .catch(() => setTimeline([]));

@@ -74,8 +74,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: role,
         avatarUrl: meta.avatar_url,
       });
+
+      // Synchronize session cookie so server-side verifyServerAuth can read it as fallback
+      if (typeof document !== 'undefined' && activeSession.access_token) {
+        document.cookie = `sb-access-token=${activeSession.access_token}; path=/; SameSite=Lax; max-age=604800`;
+      }
     } else {
       setUser(null);
+      if (typeof document !== 'undefined') {
+        document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      }
     }
   }, []);
 

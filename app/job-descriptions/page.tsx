@@ -32,6 +32,7 @@ import { ChartContainer } from '@/components/ui/chart-container';
 import { useCallback, useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { JobDescription } from '@/lib/types';
+import { fetchWithAuth } from '@/lib/utils/api-client';
 
 const useStyles = makeStyles({
   container: {
@@ -131,7 +132,7 @@ export default function JobDescriptionsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/job-descriptions');
+      const res = await fetchWithAuth('/api/job-descriptions');
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? 'Failed to load job descriptions.');
       setJobDescriptions(Array.isArray(body) ? body : []);
@@ -171,7 +172,7 @@ export default function JobDescriptionsPage() {
     try {
       const isNew = editingId === 'new';
       const url = isNew ? '/api/job-descriptions' : `/api/job-descriptions/${editingId}`;
-      const res = await fetch(url, {
+      const res = await fetchWithAuth(url, {
         method: isNew ? 'POST' : 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, requirements }),
@@ -191,7 +192,7 @@ export default function JobDescriptionsPage() {
   const remove = async (id: number) => {
     if (!confirm('Are you sure you want to delete this job description?')) return;
     try {
-      const res = await fetch(`/api/job-descriptions/${id}`, { method: 'DELETE' });
+      const res = await fetchWithAuth(`/api/job-descriptions/${id}`, { method: 'DELETE' });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? 'Failed to delete job description.');
       await load();

@@ -7,7 +7,7 @@ import { ChartContainer } from '@/components/ui/chart-container';
 import { useCallback, useEffect, useState } from 'react';
 import { useAppToast } from '@/lib/hooks/use-app-toast';
 import { Candidate, GitHubIntelligence } from '@/lib/types';
-import { safeParseApiResponse } from '@/lib/utils/api-client';
+import { safeParseApiResponse, fetchWithAuth } from '@/lib/utils/api-client';
 
 const useStyles = makeStyles({
   container: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -55,7 +55,7 @@ export default function GitHubInsightsPage() {
     setSearchResult(null);
 
     try {
-      const res = await fetch('/api/ai/github/search', {
+      const res = await fetchWithAuth('/api/ai/github/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ github: searchUrl.trim() }),
@@ -71,7 +71,7 @@ export default function GitHubInsightsPage() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch('/api/candidates');
+      const res = await fetchWithAuth('/api/candidates');
       const body = await safeParseApiResponse<Candidate[] | { data: Candidate[] }>(res);
       const list = Array.isArray(body) ? body : (body && typeof body === 'object' && 'data' in body && Array.isArray(body.data)) ? body.data : [];
       setCandidates(list);
@@ -95,7 +95,7 @@ export default function GitHubInsightsPage() {
   const analyze = async (candidate: Candidate) => {
     setAnalyzing((prev) => ({ ...prev, [candidate.id]: true }));
     try {
-      const res = await fetch('/api/ai/github', {
+      const res = await fetchWithAuth('/api/ai/github', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ candidate_id: candidate.id }),

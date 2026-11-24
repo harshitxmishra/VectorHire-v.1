@@ -43,6 +43,7 @@ import {
   LineSpecificQuestion,
   ToolExecutionTrace,
 } from '@/lib/types';
+import { fetchWithAuth } from '@/lib/utils/api-client';
 
 const useStyles = makeStyles({
   container: {
@@ -225,7 +226,7 @@ export function AgentBrainPanel({
     }
 
     try {
-      const response = await fetch(
+      const response = await fetchWithAuth(
         `/api/candidates/${candidateId}/evaluate/stream?force=${force}`
       );
 

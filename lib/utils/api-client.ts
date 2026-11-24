@@ -26,7 +26,17 @@ export async function getAuthHeaders(tokenOverride?: string | null): Promise<Rec
     const supabase = getSupabaseAuthClient();
     if (supabase) {
       try {
-        const { data } = await supabase.auth.getSession();
+        let { data } = await supabase.auth.getSession();
+        // If session is expired or close to expiration (within 60s), auto-refresh
+        if (data.session) {
+          const expiresAt = data.session.expires_at ? data.session.expires_at * 1000 : 0;
+          if (expiresAt && Date.now() > expiresAt - 60000) {
+            const refreshRes = await supabase.auth.refreshSession();
+            if (refreshRes.data.session) {
+              data = refreshRes.data;
+            }
+          }
+        }
         if (data.session?.access_token) {
           return { Authorization: `Bearer ${data.session.access_token}` };
         }

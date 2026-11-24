@@ -276,7 +276,7 @@ function CandidateDetailContent() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/candidates/${candidateId}`);
+      const res = await fetchWithAuth(`/api/candidates/${candidateId}`);
       const data = await safeParseApiResponse<Candidate>(res);
       setCandidate(data);
     } catch (err) {
@@ -289,7 +289,7 @@ function CandidateDetailContent() {
   const loadTimeline = useCallback(async () => {
     if (!Number.isFinite(candidateId) || candidateId <= 0) return;
     try {
-      const res = await fetch(`/api/candidates/${candidateId}/timeline`);
+      const res = await fetchWithAuth(`/api/candidates/${candidateId}/timeline`);
       if (res.ok) {
         const events = await safeParseApiResponse<TimelineEvent[]>(res);
         setTimeline(Array.isArray(events) ? events : []);
@@ -302,7 +302,7 @@ function CandidateDetailContent() {
   const loadInterviews = useCallback(async () => {
     if (!Number.isFinite(candidateId) || candidateId <= 0) return;
     try {
-      const res = await fetch(`/api/interviews?candidateId=${candidateId}`);
+      const res = await fetchWithAuth(`/api/interviews?candidateId=${candidateId}`);
       if (res.ok) {
         const data = await safeParseApiResponse<Interview[]>(res);
         setInterviews(Array.isArray(data) ? data : []);
@@ -315,7 +315,7 @@ function CandidateDetailContent() {
   const loadEmailLogs = useCallback(async () => {
     if (!Number.isFinite(candidateId) || candidateId <= 0) return;
     try {
-      const res = await fetch(`/api/candidates/${candidateId}/emails`);
+      const res = await fetchWithAuth(`/api/candidates/${candidateId}/emails`);
       if (res.ok) {
         const data = await safeParseApiResponse<EmailLog[]>(res);
         setEmailLogs(Array.isArray(data) ? data : []);
@@ -343,7 +343,7 @@ function CandidateDetailContent() {
   const handleStatusChange = async (newStatus: string) => {
     if (!candidate || candidate.status === newStatus) return;
     try {
-      const res = await fetch(`/api/candidates/${candidate.id}`, {
+      const res = await fetchWithAuth(`/api/candidates/${candidate.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -474,7 +474,7 @@ function CandidateDetailContent() {
     setSavingInterview(true);
 
     try {
-      const res = await fetch('/api/interviews', {
+      const res = await fetchWithAuth('/api/interviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -500,7 +500,7 @@ function CandidateDetailContent() {
   // Interview status update
   const handleUpdateInterviewStatus = async (interviewId: number, newStatus: 'completed' | 'cancelled') => {
     try {
-      const res = await fetch(`/api/interviews/${interviewId}`, {
+      const res = await fetchWithAuth(`/api/interviews/${interviewId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -521,7 +521,7 @@ function CandidateDetailContent() {
     notify('Dispatching assessment email...', 'info');
 
     try {
-      const res = await fetch('/api/emails/send', {
+      const res = await fetchWithAuth('/api/emails/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -556,7 +556,7 @@ function CandidateDetailContent() {
     notify('Dispatching employment offer email...', 'info');
 
     try {
-      const res = await fetch('/api/emails/send', {
+      const res = await fetchWithAuth('/api/emails/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

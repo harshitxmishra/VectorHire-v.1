@@ -18,6 +18,7 @@ import { useAppData } from '@/lib/hooks/use-app-data';
 import { useCallback, useEffect, useState } from 'react';
 import { Candidate, AIEvaluationResult, JobDescription, JobMatchResult } from '@/lib/types';
 import { Textarea, Tag } from '@fluentui/react-components';
+import { fetchWithAuth } from '@/lib/utils/api-client';
 
 interface ResumeMatchResult {
   matchPercentage: number;
@@ -50,7 +51,7 @@ function ResumeMatcher() {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('jobDescription', jobDescription);
-      const res = await fetch('/api/ai/resume-match', { method: 'POST', body: formData });
+      const res = await fetchWithAuth('/api/ai/resume-match', { method: 'POST', body: formData });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? 'Resume match failed.');
       setResult(body);
@@ -266,7 +267,7 @@ export default function AIEvaluationPage() {
   const [matchStatus, setMatchStatus] = useState<Record<number, MatchStatus>>({});
 
   useEffect(() => {
-    fetch('/api/job-descriptions')
+    fetchWithAuth('/api/job-descriptions')
       .then((res) => res.json())
       .then((body) => setJobDescriptions(Array.isArray(body) ? body : []))
       .catch((err) => console.error(err));
@@ -301,7 +302,7 @@ export default function AIEvaluationPage() {
 
     try {
       // Direct Next.js AI evaluation endpoint
-      const response = await fetch('/api/ai/evaluate', {
+      const response = await fetchWithAuth('/api/ai/evaluate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

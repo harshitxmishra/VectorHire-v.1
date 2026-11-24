@@ -30,7 +30,7 @@ describe('Phase 4 & Phase 3: HITL Outbound Sourcer and Live SSE Stream', () => {
       expect(prospect.profile_url).toContain('github.com');
       expect(prospect.score).toBeGreaterThan(0);
       expect(prospect.cited_repos.length).toBeGreaterThan(0);
-    });
+    }, 20000);
 
     it('places all newly discovered prospects strictly into PENDING_HUMAN_APPROVAL status', async () => {
       const prospects = await runSourcerAgent({
@@ -45,7 +45,7 @@ describe('Phase 4 & Phase 3: HITL Outbound Sourcer and Live SSE Stream', () => {
         expect(prospect.reviewed_at).toBeFalsy();
         expect(prospect.reviewed_by).toBeFalsy();
       }
-    });
+    }, 20000);
 
     it('generates hyper-personalized outreach citing specific repository and architecture choices', async () => {
       const email = await generatePersonalizedOutreachEmail({

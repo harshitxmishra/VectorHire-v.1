@@ -40,6 +40,7 @@ import { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { JobDescription, PIPELINE_STAGES } from '@/lib/types';
 import { JobMatchWithCandidate, JobMatchMetrics } from '@/lib/repositories/job-match-repository';
+import { fetchWithAuth } from '@/lib/utils/api-client';
 
 const useStyles = makeStyles({
   container: {
@@ -302,7 +303,7 @@ function JobDetailContent() {
     setJobLoading(true);
     setJobError(null);
     try {
-      const res = await fetch(`/api/job-descriptions/${jobId}`);
+      const res = await fetchWithAuth(`/api/job-descriptions/${jobId}`);
       if (!res.ok) {
         if (res.status === 404) throw new Error('Job description not found.');
         throw new Error('Failed to load job description.');
@@ -335,7 +336,7 @@ function JobDetailContent() {
       params.set('page', String(urlPage));
       params.set('limit', String(urlLimit));
 
-      const res = await fetch(`/api/job-matches?${params.toString()}`);
+      const res = await fetchWithAuth(`/api/job-matches?${params.toString()}`);
       if (!res.ok) {
         throw new Error(`Failed to load matching candidates (${res.status})`);
       }
@@ -387,7 +388,7 @@ function JobDetailContent() {
     notify('Running AI matching across candidate pool...', 'info');
 
     try {
-      const res = await fetch('/api/job-matches/run', {
+      const res = await fetchWithAuth('/api/job-matches/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
