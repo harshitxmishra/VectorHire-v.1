@@ -59,6 +59,7 @@ import {
   PIPELINE_STAGES,
 } from '@/lib/types';
 import { safeParseApiResponse, fetchWithAuth } from '@/lib/utils/api-client';
+import { AgentBrainPanel } from '@/components/ai/AgentBrainPanel';
 
 const useStyles = makeStyles({
   container: {
@@ -959,66 +960,23 @@ function CandidateDetailContent() {
 
             {intelligenceSubTab === 'ai' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {aiEval ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div className={styles.infoRow}>
-                      <span className={styles.infoLabel}>Overall Recommendation</span>
-                      <span className={styles.infoValue} style={{ color: tokens.colorBrandForeground1, fontWeight: 600 }}>
-                        {aiEval.recommendation || 'Proceed to interview'}
-                      </span>
-                    </div>
-
-                    {aiEval.summary && (
-                      <div className={styles.infoRow}>
-                        <span className={styles.infoLabel}>Candidate Evaluation Summary</span>
-                        <span className={styles.infoValue}>{aiEval.summary}</span>
-                      </div>
-                    )}
-
-                    {Array.isArray(aiEval.strengths) && aiEval.strengths.length > 0 && (
-                      <div className={styles.infoRow}>
-                        <span className={styles.infoLabel}>Key Strengths</span>
-                        <ul style={{ margin: '8px 0 0 16px', padding: 0 }}>
-                          {aiEval.strengths.map((s, idx) => (
-                            <li key={idx} style={{ color: tokens.colorPaletteGreenForeground1, marginBottom: '4px' }}>
-                              {s}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {Array.isArray(aiEval.weaknesses) && aiEval.weaknesses.length > 0 && (
-                      <div className={styles.infoRow}>
-                        <span className={styles.infoLabel}>Potential Gaps / Areas to Probe</span>
-                        <ul style={{ margin: '8px 0 0 16px', padding: 0 }}>
-                          {aiEval.weaknesses.map((w, idx) => (
-                            <li key={idx} style={{ color: tokens.colorPaletteYellowForeground1, marginBottom: '4px' }}>
-                              {w}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {Array.isArray(aiEval.interviewQuestions) && aiEval.interviewQuestions.length > 0 && (
-                      <div className={styles.infoRow}>
-                        <span className={styles.infoLabel}>Suggested Technical Interview Questions</span>
-                        <ol style={{ margin: '8px 0 0 16px', padding: 0 }}>
-                          {aiEval.interviewQuestions.map((q, idx) => (
-                            <li key={idx} style={{ color: tokens.colorBrandForeground1, marginBottom: '6px' }}>
-                              {q}
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div style={{ padding: '32px', textAlign: 'center', color: tokens.colorNeutralForeground3 }}>
-                    Candidate has not been evaluated with AI yet. Click &quot;Run AI Evaluation&quot; above.
-                  </div>
-                )}
+                <AgentBrainPanel
+                  candidateId={candidate.id}
+                  initialEvaluation={aiEval}
+                  onEvaluationComplete={(result) => {
+                    setCandidate((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            ai_score: result.score,
+                            ai_evaluation: result,
+                          }
+                        : prev
+                    );
+                    loadCandidate();
+                    loadTimeline();
+                  }}
+                />
               </div>
             )}
 
