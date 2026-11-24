@@ -7,6 +7,23 @@ import {
   getCachedGitHubIntelligence,
   setCachedGitHubIntelligence,
 } from '@/lib/services/cache-service';
+import {
+  runRepoInterrogation,
+  list_repo_tree,
+  read_file_chunk,
+  get_recent_prs,
+  check_test_coverage,
+  RepoInterrogationResult,
+} from '@/lib/services/repo-interrogator';
+
+export {
+  list_repo_tree,
+  read_file_chunk,
+  get_recent_prs,
+  check_test_coverage,
+  runRepoInterrogation,
+  type RepoInterrogationResult,
+};
 
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -396,6 +413,16 @@ export async function fetchGitHubAnalysis(githubUrl: string): Promise<GitHubInte
 
   const summary = `Candidate maintains ${ownRepos.length} original repositories with verified focus on ${topLanguages.join(', ') || 'modern fullstack technologies'}. Commit hygiene and production architecture show a ${engineeringSignalScore}/100 engineering signal rating.`;
 
+  let interrogation: RepoInterrogationResult | null = null;
+  try {
+    interrogation = await runRepoInterrogation({
+      githubUrl,
+      strongestRepo: strongestRepo ? strongestRepo.name : top5[0]?.name ?? 'core-engine',
+    });
+  } catch {
+    // Non-fatal
+  }
+
   const intelligence: GitHubIntelligence = {
     score: engineeringSignalScore,
     subScores,
@@ -405,6 +432,9 @@ export async function fetchGitHubAnalysis(githubUrl: string): Promise<GitHubInte
     highlights,
     strongestRepo: strongestRepo ? strongestRepo.name : top5[0]?.name ?? null,
     topRepos: repoAnalyses,
+    inspected_files: interrogation?.inspected_files,
+    line_specific_interview_questions: interrogation?.line_specific_interview_questions,
+    tool_traces: interrogation?.tool_traces,
   };
 
   // Cache result for 7 days

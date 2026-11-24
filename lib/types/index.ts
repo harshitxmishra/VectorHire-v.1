@@ -62,6 +62,9 @@ export interface GitHubIntelligence {
   highlights: string[];
   strongestRepo: string | null;
   topRepos?: DeepRepoAnalysis[];
+  inspected_files?: InspectedFile[];
+  line_specific_interview_questions?: LineSpecificQuestion[];
+  tool_traces?: ToolExecutionTrace[];
 }
 
 export interface JDSkillMatch {
@@ -77,6 +80,62 @@ export interface StandoutEvidence {
   commitOrReadme: string;
 }
 
+export interface InspectedFile {
+  repo: string;
+  path: string;
+  lines: string;
+  architectural_notes: string;
+  code_quality_score: number;
+}
+
+export interface LineSpecificQuestion {
+  repo: string;
+  path: string;
+  line_range: string;
+  question: string;
+  context?: string;
+}
+
+export type CommitteeAgentRole = 'ADVOCATE' | 'SKEPTIC' | 'HIRING_MANAGER';
+export type CommitteeVerdict = 'STRONG_HIRE' | 'LEAN_HIRE' | 'LEAN_NO_HIRE' | 'NO_HIRE';
+export type ClaimVerificationStatus = 'VERIFIED_IN_CODE' | 'RESUME_ONLY' | 'CONTRADICTED' | 'MISSING';
+
+export interface DebateTurn {
+  agent: CommitteeAgentRole;
+  claim: string;
+  evidence_citations: string[];
+  timestamp: string;
+}
+
+export interface ClaimVerificationItem {
+  skill: string;
+  status: ClaimVerificationStatus;
+  citation: string;
+}
+
+export interface ToolExecutionTrace {
+  tool: string;
+  input: Record<string, unknown>;
+  output_summary: string;
+  latency_ms: number;
+  timestamp?: string;
+  cache_hit?: boolean;
+}
+
+export interface AgentEvaluationTrace {
+  id?: number;
+  candidate_id: number;
+  created_at?: string;
+  verdict: CommitteeVerdict;
+  calibrated_score: number;
+  debate_transcript: DebateTurn[];
+  claim_verification_matrix: ClaimVerificationItem[];
+  inspected_files: InspectedFile[];
+  line_specific_interview_questions: (string | LineSpecificQuestion)[];
+  tool_traces: ToolExecutionTrace[];
+  content_hash?: string;
+}
+
 export interface AIEvaluationResult {
   score: number;
   overall_score?: number;
@@ -90,6 +149,32 @@ export interface AIEvaluationResult {
   red_flags?: string[];
   standout_evidence?: StandoutEvidence[];
   cached?: boolean;
+  verdict?: CommitteeVerdict;
+  calibrated_score?: number;
+  debate_transcript?: DebateTurn[];
+  claim_verification_matrix?: ClaimVerificationItem[];
+  inspected_files?: InspectedFile[];
+  line_specific_interview_questions?: (string | LineSpecificQuestion)[];
+  tool_traces?: ToolExecutionTrace[];
+}
+
+export type ProspectStatus = 'PENDING_HUMAN_APPROVAL' | 'APPROVED' | 'REJECTED' | 'IMPORTED';
+
+export interface SourcedProspect {
+  id: number;
+  created_at: string;
+  job_description_id: number;
+  github_username: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  profile_url: string;
+  score: number;
+  cited_repos: string[];
+  personalized_email_draft: string;
+  status: ProspectStatus;
+  reviewed_at?: string | null;
+  reviewed_by?: string | null;
+  candidate_id?: number | null;
 }
 
 export interface DatasetUpload {
