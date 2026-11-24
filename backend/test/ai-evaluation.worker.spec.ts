@@ -43,6 +43,12 @@ describe('AiEvaluationWorker', () => {
     weaknesses: ['Frontend animation performance'],
     recommendation: 'Advance to final stage',
     interviewQuestions: ['Describe PostgreSQL locking mechanisms.'],
+    verdict: 'STRONG_HIRE',
+    debate_transcript: [
+      { agent: 'ADVOCATE', claim: 'Strong systems design', evidence_citations: ['repo/file.ts:L10'], timestamp: '2026-11-24T10:00:00Z' },
+      { agent: 'SKEPTIC', claim: 'Needs deeper concurrency tests', evidence_citations: ['repo/test.ts:L20'], timestamp: '2026-11-24T10:00:01Z' },
+      { agent: 'HIRING_MANAGER', claim: 'Calibrated verdict Strong Hire', evidence_citations: [], timestamp: '2026-11-24T10:00:02Z' },
+    ],
   };
 
   beforeEach(() => {
@@ -94,6 +100,8 @@ describe('AiEvaluationWorker', () => {
       weaknesses: mockCandidateEval.weaknesses,
       recommendation: mockCandidateEval.recommendation,
       interviewQuestions: mockCandidateEval.interviewQuestions,
+      verdict: 'STRONG_HIRE',
+      debate_transcript: mockCandidateEval.debate_transcript,
       correlationId: 'corr-xyz-123',
     });
     expect(result.processedAt).toBeDefined();
