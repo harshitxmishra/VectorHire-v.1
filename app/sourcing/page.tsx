@@ -44,7 +44,7 @@ import {
 } from '@fluentui/react-icons';
 import { useAppToast } from '@/lib/hooks/use-app-toast';
 import { SourcedProspect, JobDescription, ProspectStatus } from '@/lib/types';
-import { safeParseApiResponse } from '@/lib/utils/api-client';
+import { safeParseApiResponse, fetchWithAuth } from '@/lib/utils/api-client';
 
 const useStyles = makeStyles({
   container: {
@@ -130,7 +130,7 @@ export default function SourcingPage() {
   // Load Job Descriptions
   const loadJobDescriptions = useCallback(async () => {
     try {
-      const res = await fetch('/api/job-descriptions');
+      const res = await fetchWithAuth('/api/job-descriptions');
       if (res.ok) {
         const jds = await safeParseApiResponse<JobDescription[]>(res);
         if (Array.isArray(jds) && jds.length > 0) {
@@ -147,7 +147,7 @@ export default function SourcingPage() {
   const loadProspects = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/sourcing');
+      const res = await fetchWithAuth('/api/sourcing');
       if (res.ok) {
         const data = await safeParseApiResponse<SourcedProspect[]>(res);
         setProspects(Array.isArray(data) ? data : []);
@@ -173,7 +173,7 @@ export default function SourcingPage() {
     const selectedJd = jobDescriptions.find((j) => j.id === selectedJdId);
 
     try {
-      const res = await fetch('/api/sourcing', {
+      const res = await fetchWithAuth('/api/sourcing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -205,7 +205,7 @@ export default function SourcingPage() {
     setActionLoadingId(prospectId);
     try {
       const customDraft = draftTexts[prospectId];
-      const res = await fetch(`/api/sourcing/${prospectId}/approve`, {
+      const res = await fetchWithAuth(`/api/sourcing/${prospectId}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

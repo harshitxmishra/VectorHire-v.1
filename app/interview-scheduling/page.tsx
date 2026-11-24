@@ -9,6 +9,7 @@ import { ScheduleInterviewDrawer } from '@/components/scheduling/ScheduleIntervi
 import { useAppToast } from '@/lib/hooks/use-app-toast';
 import { useCallback, useEffect, useState } from 'react';
 import { Candidate, Interview } from '@/lib/types';
+import { fetchWithAuth } from '@/lib/utils/api-client';
 
 const useStyles = makeStyles({
   container: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -50,8 +51,8 @@ export default function InterviewSchedulingPage() {
   const load = useCallback(async () => {
     try {
       const [interviewsRes, candidatesRes] = await Promise.all([
-        fetch('/api/interviews'),
-        fetch('/api/candidates'),
+        fetchWithAuth('/api/interviews'),
+        fetchWithAuth('/api/candidates'),
       ]);
       const interviewsBody = await interviewsRes.json();
       const candidatesBody = await candidatesRes.json();
@@ -70,7 +71,7 @@ export default function InterviewSchedulingPage() {
 
   const updateStatus = async (interview: Interview, status: 'completed' | 'cancelled') => {
     try {
-      const res = await fetch(`/api/interviews/${interview.id}`, {
+      const res = await fetchWithAuth(`/api/interviews/${interview.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),

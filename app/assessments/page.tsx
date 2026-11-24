@@ -18,6 +18,7 @@ import { ChartContainer } from '@/components/ui/chart-container';
 import { useAppToast } from '@/lib/hooks/use-app-toast';
 import { useCallback, useEffect, useState } from 'react';
 import type { AssessmentQueueItem } from '@/app/api/assessments/queue/route';
+import { fetchWithAuth } from '@/lib/utils/api-client';
 
 const useStyles = makeStyles({
   container: { display: 'flex', flexDirection: 'column', gap: tokens.spacingVerticalL },
@@ -74,7 +75,7 @@ export default function AssessmentsPage() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch('/api/assessments/queue');
+      const res = await fetchWithAuth('/api/assessments/queue');
       const body = await res.json();
       if (!res.ok) throw new Error(body.error ?? 'Failed to load assessment queue.');
       setQueue(Array.isArray(body) ? body : []);
@@ -92,7 +93,7 @@ export default function AssessmentsPage() {
   const sendAssessment = async (candidateId: number) => {
     setSendingId(candidateId);
     try {
-      const res = await fetch('/api/v1/emails/send', {
+      const res = await fetchWithAuth('/api/emails/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
