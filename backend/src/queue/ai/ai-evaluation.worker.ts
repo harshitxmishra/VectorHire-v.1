@@ -91,6 +91,10 @@ export class AiEvaluationWorker implements OnModuleInit, OnApplicationShutdown {
         weaknesses: evalResult.weaknesses,
         recommendation: evalResult.recommendation,
         interviewQuestions: evalResult.interviewQuestions,
+        verdict: evalResult.verdict,
+        calibrated_score: evalResult.calibrated_score ?? evalResult.score,
+        debate_transcript: evalResult.debate_transcript,
+        claim_verification_matrix: evalResult.claim_verification_matrix,
         correlationId,
         processedAt: new Date().toISOString(),
       };

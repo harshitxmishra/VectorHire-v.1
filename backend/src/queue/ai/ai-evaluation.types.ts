@@ -21,6 +21,10 @@ export interface AiEvaluationJobResult {
   interviewQuestions: string[];
   correlationId: string;
   processedAt: string;
+  verdict?: string;
+  calibrated_score?: number;
+  debate_transcript?: any[];
+  claim_verification_matrix?: any[];
 }
 
 export interface JobStatusResponse {
